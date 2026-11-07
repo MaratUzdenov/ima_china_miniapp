@@ -162,3 +162,16 @@ button.item + button.item { margin-top: 10px; border-top: 1px solid var(--tg-the
   margin-top: 10px; padding: 10px 12px; border-radius: 12px; font-size: 14px;
   background: var(--tg-theme-secondary-bg-color); color: var(--tg-theme-text-color);
 }
+
+/* Оплата */
+.button--secondary { background: var(--tg-theme-secondary-bg-color); color: var(--tg-theme-link-color); }
+.money { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+.money div { background: var(--tg-theme-secondary-bg-color); border-radius: 12px; padding: 8px 10px; }
+.money span { display: block; font-size: 12px; color: var(--tg-theme-hint-color); }
+.money b { font-size: 15px; overflow-wrap: anywhere; }
+.amount { margin-top: 8px; font-size: 20px; }
+.chip--action {
+  margin-top: 10px; min-height: 36px; padding: 0 12px; cursor: pointer; font: inherit; font-size: 14px;
+  background: none; color: var(--tg-theme-link-color); border: 1px solid currentColor; border-radius: 999px;
+}
+.notice--error { color: var(--tg-theme-destructive-text-color); }

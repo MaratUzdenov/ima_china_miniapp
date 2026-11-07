@@ -1,6 +1,6 @@
 import { getInitData, insideTelegram } from './telegram';
 import { demoOrders } from './mock';
-import type { ApiErrorBody, Order, OrdersList, StatusPreview, StatusResult } from './types';
+import type { ApiErrorBody, Order, OrdersList, PaymentResult, StatusPreview, StatusResult } from './types';
 
 const API_URL = (import.meta.env.VITE_API_URL || '').trim();
 // Apps Script иногда думает 5–10 секунд (холодный старт). Дольше 30 — считаем, что связи нет.
@@ -78,4 +78,27 @@ export async function setStatus(o: Order, status: string): Promise<StatusResult>
       order: { ...o, status, statusDate: new Date().toISOString().slice(0, 16) } };
   }
   return call<StatusResult>('status.set', { row: o.row, id: o.id, status });
+}
+
+// requestId — один на попытку оплаты: если запрос уйдёт дважды (двойное нажатие, плохая связь),
+// бэкенд запишет деньги один раз.
+export async function addPayment(o: Order, amount: number, requestId: string): Promise<PaymentResult> {
+  if (demoMode) {
+    await demoWait(700);
+    const paid = (typeof o.paid === 'number' ? o.paid : 0) + amount;
+    const expected = typeof o.expected === 'number' ? o.expected : null;
+    const due = expected === null ? null : expected - paid;
+    return { row: o.row, amount, total: paid, due, duplicate: false,
+      suggestPaid: due !== null && due <= 0 && o.status === 'Принят',
+      order: { ...o, paid, due, paidDate: new Date().toISOString().slice(0, 10) } };
+  }
+  return call<PaymentResult>('payment.add', { row: o.row, id: o.id, amount, requestId });
+}
+
+export function newRequestId(): string {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
+  }
 }

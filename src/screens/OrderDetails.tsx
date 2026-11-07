@@ -3,7 +3,8 @@ import { StatusProgress } from '../components/StatusProgress';
 import { DETAIL_GROUPS } from '../fields';
 import { formatField, isNum, orderWarnings, rub, todayIso } from '../format';
 import { insideTelegram, openExternal, useTelegramBack } from '../telegram';
-import type { Order, StatusResult } from '../types';
+import type { Order, PaymentResult, StatusResult } from '../types';
+import { Payment } from './Payment';
 import { StatusChange } from './StatusChange';
 
 interface Props {
@@ -12,6 +13,19 @@ interface Props {
   statuses: string[];
   onBack: () => void;
   onOrderUpdated: (o: Order) => void;
+}
+
+// Итог оплаты — как в боте (Edit.gs → applyPaymentText).
+function paymentText(r: PaymentResult): string {
+  if (r.duplicate) return 'ℹ️ Эта оплата уже была записана — второй раз не прибавлял.';
+  let t = '✅ Оплата ' + rub(r.amount) + ' записана. Получено всего: ' + rub(r.total) + '.';
+  if (r.due !== null) {
+    if (r.due > 0) t += ' Осталось: ' + rub(r.due) + '.';
+    else if (r.due === 0) t += ' 🎉 Оплачено полностью.';
+    else t += ' 🔵 Переплата: ' + rub(-r.due) + ' — нужно вернуть или зачесть.';
+  }
+  if (r.suggestPaid) t += ' Заказ ещё «Принят» — можно поставить «Оплачен» (клиент получит сообщение).';
+  return t;
 }
 
 // Итог смены статуса — те же формулировки, что в боте (Status.gs → clientResultText).
@@ -31,20 +45,30 @@ function resultText(r: StatusResult): string {
 // Карточка заказа: все поля по группам, как в боте. Пока только просмотр —
 // смена статуса и оплата появятся, когда API научится писать в таблицу.
 export function OrderDetails({ order: o, chain, statuses, onBack, onOrderUpdated }: Props) {
-  const [changingStatus, setChangingStatus] = useState(false);
+  const [mode, setMode] = useState<'view' | 'status' | 'payment'>('view');
+  const changingStatus = mode !== 'view';
+  const setChangingStatus = (on: boolean) => setMode(on ? 'status' : 'view');
   const [notice, setNotice] = useState('');
-  const closeStatus = useCallback(() => setChangingStatus(false), []);
+  const closeStatus = useCallback(() => setMode('view'), []);
   const statusDone = useCallback((r: StatusResult) => {
     onOrderUpdated(r.order);
     setNotice(resultText(r));
-    setChangingStatus(false);
+    setMode('view');
+  }, [onOrderUpdated]);
+  const paymentDone = useCallback((r: PaymentResult) => {
+    onOrderUpdated(r.order);
+    setNotice(paymentText(r));
+    setMode('view');
   }, [onOrderUpdated]);
 
   useEffect(() => (changingStatus ? undefined : useTelegramBack(onBack)), [onBack, changingStatus]);
   useEffect(() => { window.scrollTo(0, 0); }, [o.id, changingStatus]);
 
-  if (changingStatus) {
+  if (mode === 'status') {
     return <StatusChange order={o} statuses={statuses} onDone={statusDone} onCancel={closeStatus} />;
+  }
+  if (mode === 'payment') {
+    return <Payment order={o} onDone={paymentDone} onCancel={closeStatus} />;
   }
   const warnings = orderWarnings(o, todayIso());
 
@@ -70,6 +94,7 @@ export function OrderDetails({ order: o, chain, statuses, onBack, onOrderUpdated
         {isNum(o.due) && o.due > 0 && <div className="card__debt">Осталось получить: <b>{rub(o.due)}</b></div>}
         <div className="actions">
           <button className="button" onClick={() => { setNotice(''); setChangingStatus(true); }}>🔄 Сменить статус</button>
+          <button className="button button--secondary" onClick={() => { setNotice(''); setMode('payment'); }}>💰 Внести оплату</button>
         </div>
         {notice && <div className="notice">{notice}</div>}
         {!o.tgConnected && (
@@ -87,7 +112,7 @@ export function OrderDetails({ order: o, chain, statuses, onBack, onOrderUpdated
       ))}
 
       <div className="details__note details__note--center">
-        Оплату и другие поля пока меняйте в боте: «📋 Заказы» → заказ → 💰 / ✏️.
+        Другие поля пока меняйте в боте: «📋 Заказы» → заказ → ✏️ Редактировать.
       </div>
     </div>
   );

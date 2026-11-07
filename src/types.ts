@@ -65,3 +65,13 @@ export interface StatusResult {
   notify: { result: 'sent' | 'noTg' | 'off' | 'dup' | 'fail'; error?: string } | null;
   order: Order;
 }
+
+export interface PaymentResult {
+  row: number;
+  amount: number;
+  total: number;
+  due: number | null;
+  suggestPaid: boolean;  // оплачено полностью, а статус ещё «Принят»
+  duplicate: boolean;    // повторный запрос — ничего не прибавлено
+  order: Order;
+}
