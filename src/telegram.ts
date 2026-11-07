@@ -21,6 +21,7 @@ import {
 // Открыли не в Telegram (обычный браузер, разработка) — подставляем «Telegram понарошку»,
 // чтобы экран выглядел так же. Цвета здесь — только для браузера: в Telegram берутся из его темы.
 function mockOutsideTelegram(): void {
+  try { sessionStorage.setItem(MOCK_FLAG, '1'); } catch { /* приватный режим — не страшно */ }
   mockTelegramEnv({
     launchParams: {
       tgWebAppVersion: '8.0',
@@ -45,9 +46,24 @@ function mockOutsideTelegram(): void {
   });
 }
 
-export const insideTelegram = isTMA();
+// Метка «это мы подставили Telegram понарошку»: SDK запоминает подставные данные в sessionStorage,
+// и после перезагрузки страницы isTMA() начинает верить, что мы в Telegram.
+const MOCK_FLAG = 'tgMocked';
+function wasMocked(): boolean {
+  try { return sessionStorage.getItem(MOCK_FLAG) === '1'; } catch { return false; }
+}
+export const insideTelegram = isTMA() && !wasMocked();
 
 export function setupTelegram(): void {
+  try {
+    setupTelegramUnsafe();
+  } catch (err) {
+    // Экран всё равно покажем — без темы и кнопки «Назад», но с данными.
+    console.error('Не удалось подключиться к Telegram', err);
+  }
+}
+
+function setupTelegramUnsafe(): void {
   if (!insideTelegram) mockOutsideTelegram();
   init();
   mountThemeParamsSync();
