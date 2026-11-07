@@ -17,7 +17,17 @@ export class ApiError extends Error {
   }
 }
 
+// Сколько занял последний запрос: всего и из них работа скрипта Google. Показываем в итогах действий.
+export const lastTiming = { totalMs: 0, serverMs: 0 };
+
+export function timingText(): string {
+  if (!lastTiming.totalMs) return '';
+  const sec = (ms: number) => (ms / 1000).toFixed(1).replace('.', ',');
+  return ' · ' + sec(lastTiming.totalMs) + ' с' + (lastTiming.serverMs ? ' (таблица ' + sec(lastTiming.serverMs) + ' с)' : '');
+}
+
 async function call<T>(method: string, params: Record<string, unknown> = {}): Promise<T> {
+  const started = performance.now();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   let res: Response;
@@ -38,13 +48,15 @@ async function call<T>(method: string, params: Record<string, unknown> = {}): Pr
   } finally {
     clearTimeout(timer);
   }
-  let json: { ok: boolean; data?: T; error?: ApiErrorBody };
+  let json: { ok: boolean; data?: T; error?: ApiErrorBody; serverMs?: number };
   try {
     json = await res.json();
   } catch {
     // Вместо JSON пришла страница Google — чаще всего не сделана «Новая версия» развёртывания.
     throw new ApiError({ code: 'internal', message: 'Таблица ответила не так, как ожидалось. Возможно, не обновлено развёртывание Apps Script.' });
   }
+  lastTiming.totalMs = Math.round(performance.now() - started);
+  lastTiming.serverMs = typeof json.serverMs === 'number' ? json.serverMs : 0;
   if (!json.ok || json.data === undefined) {
     throw new ApiError(json.error || { code: 'internal', message: 'Неизвестная ошибка.' });
   }
@@ -69,6 +81,13 @@ export async function previewStatus(o: Order, status: string): Promise<StatusPre
       text: note === 'send' ? `📦 Заказ ${o.id} — новый статус: «${status}»\nТовар: ${o.item}\n\nЧто дальше: (демо-текст из Справочников)\n\nВопросы — просто напишите сюда.` : '' };
   }
   return call<StatusPreview>('status.preview', { row: o.row, id: o.id, status });
+}
+
+// Тексты для всех статусов одним запросом — грузим, пока человек выбирает.
+export async function previewAllStatuses(o: Order, statuses: string[]): Promise<StatusPreview[]> {
+  if (demoMode) return Promise.all(statuses.map(s => previewStatus(o, s)));
+  const r = await call<{ previews: StatusPreview[] }>('status.previewAll', { row: o.row, id: o.id });
+  return r.previews;
 }
 
 export async function setStatus(o: Order, status: string): Promise<StatusResult> {

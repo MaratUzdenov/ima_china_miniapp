@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { ApiError, demoMode, fetchFieldsMeta, setField } from '../api';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ApiError, demoMode, fetchFieldsMeta, setField, timingText } from '../api';
 import { SkeletonList } from '../components/States';
 import { DETAIL_GROUPS } from '../fields';
 import { formatField } from '../format';
@@ -21,7 +21,34 @@ export function EditOrder({ order: o, onOrderUpdated, onClose }: Props) {
   const [meta, setMeta] = useState<FieldsMeta | null>(null);
   const [loadError, setLoadError] = useState('');
   const [field, setFieldMeta] = useState<FieldMeta | null>(null);
-  const [notice, setNotice] = useState('');
+  const [notices, setNotices] = useState<{ text: string; error: boolean }[]>([]);
+  // Поля, которые сейчас сохраняются. Сохранение идёт в фоне — человек сразу возвращается к списку полей.
+  const [pending, setPending] = useState<Record<string, string>>({});
+  // Сохранения строго по очереди: ответ каждого приносит всю строку заказа, и порядок не должен перепутаться.
+  const queue = useRef<Promise<void>>(Promise.resolve());
+  const pendingCount = Object.keys(pending).length;
+  // Самая свежая версия заказа — к моменту, когда до поля дойдёт очередь, предыдущие сохранения уже её обновили.
+  const latest = useRef(o);
+  latest.current = o;
+
+  const addNotice = (text: string, error = false) => setNotices(prev => [{ text, error }, ...prev].slice(0, 4));
+
+  const submit = useCallback((f: FieldMeta, value: string, clear: boolean) => {
+    setPending(p => ({ ...p, [f.key]: clear ? 'очищаю' : value }));
+    setFieldMeta(null);
+    queue.current = queue.current.then(() => setField(latest.current, f.key, value, clear)
+      .then(r => {
+        notifySuccess();
+        latest.current = r.order; // следующее в очереди сохранение возьмёт уже обновлённый заказ
+        onOrderUpdated(r.order);
+        const parts = ['✅ ' + shortTitle(f.title) + ': ' + (r.old || '—') + ' → ' + (r.new || '—')];
+        if (r.clientAdded) parts.push('🆕 Новый клиент добавлен в «Клиенты».');
+        if (r.warn) parts.push('⚠️ ' + r.warn);
+        addNotice(parts.join(' ') + timingText());
+      })
+      .catch(err => addNotice('❌ ' + shortTitle(f.title) + ' не сохранено: ' + errText(err), true))
+      .finally(() => setPending(p => { const n = { ...p }; delete n[f.key]; return n; })));
+  }, [onOrderUpdated]);
 
   const load = useCallback(() => {
     setLoadError('');
@@ -30,17 +57,13 @@ export function EditOrder({ order: o, onOrderUpdated, onClose }: Props) {
   useEffect(load, [load]);
 
   const closeField = useCallback(() => setFieldMeta(null), []);
-  useEffect(() => (field ? undefined : useTelegramBack(onClose)), [field, onClose]);
+  // Пока что-то сохраняется — не уходим: иначе ошибку сохранения никто не увидит.
+  useEffect(() => (field ? undefined : useTelegramBack(pendingCount ? null : onClose)), [field, onClose, pendingCount]);
   useEffect(() => { if (!field) window.scrollTo(0, 0); }, [field]);
 
   if (field) {
     return (
-      <FieldEditor
-        order={o}
-        field={field}
-        onCancel={closeField}
-        onSaved={(fresh, text) => { onOrderUpdated(fresh); setNotice(text); setFieldMeta(null); }}
-      />
+      <FieldEditor order={o} field={field} onCancel={closeField} onSubmit={submit} />
     );
   }
 
@@ -51,7 +74,8 @@ export function EditOrder({ order: o, onOrderUpdated, onClose }: Props) {
         <div className="details__title">✏️ Редактировать</div>
         <div className="details__client">{o.item} · {o.client}</div>
         <div className="details__note">Нажмите на поле, чтобы изменить. Серые расчётные поля (суммы, прибыль, сроки) таблица пересчитает сама. Статус — кнопкой «Сменить статус».</div>
-        {notice && <div className="notice">{notice}</div>}
+        {pendingCount > 0 && <div className="notice">⏳ Сохраняю ({pendingCount})… Пока не закрывайте экран.</div>}
+        {notices.map((n, i) => <div key={i} className={'notice' + (n.error ? ' notice--error' : '')}>{n.text}</div>)}
       </section>
 
       {loadError && (
@@ -69,11 +93,15 @@ export function EditOrder({ order: o, onOrderUpdated, onClose }: Props) {
             {g.fields.map(f => {
               const shown = formatField(o[f.key], DISPLAY_FMT[f.key]);
               return (
-                <button key={f.key} className="field field--button" onClick={() => { setNotice(''); setFieldMeta(f); }}>
+                <button key={f.key} className="field field--button" disabled={f.key in pending} onClick={() => setFieldMeta(f)}>
                   <span className="field__title">{shortTitle(f.title)}</span>
-                  <span className={'field__value' + (shown.isHint ? ' field__value--hint' : '')}>
-                    {f.kind === 'link' && o[f.key] ? 'есть ссылка' : shown.text} ›
-                  </span>
+                  {f.key in pending ? (
+                    <span className="field__value field__value--hint">⏳ {pending[f.key]}</span>
+                  ) : (
+                    <span className={'field__value' + (shown.isHint ? ' field__value--hint' : '')}>
+                      {f.kind === 'link' && o[f.key] ? 'есть ссылка' : shown.text} ›
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -88,29 +116,23 @@ interface EditorProps {
   order: Order;
   field: FieldMeta;
   onCancel: () => void;
-  onSaved: (o: Order, notice: string) => void;
+  onSubmit: (f: FieldMeta, value: string, clear: boolean) => void;
 }
 
-function FieldEditor({ order: o, field: f, onCancel, onSaved }: EditorProps) {
+function FieldEditor({ order: o, field: f, onCancel, onSubmit }: EditorProps) {
   const [text, setText] = useState(() => initialText(o[f.key], f.kind));
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [showNote, setShowNote] = useState(false);
+  const saving = false;
 
-  useEffect(() => useTelegramBack(saving ? null : onCancel), [saving, onCancel]);
+  useEffect(() => useTelegramBack(onCancel), [onCancel]);
 
+  // Явные ошибки ловим сразу, на телефоне, — чтобы не узнать о них уже после возврата к списку.
+  // Окончательная проверка всё равно на бэкенде (те же правила, что в боте).
   const save = (value: string, clear = false) => {
-    setSaving(true);
-    setError('');
-    setField(o, f.key, value, clear)
-      .then(r => {
-        notifySuccess();
-        const parts = ['✅ ' + shortTitle(f.title) + ': ' + (r.old || '—') + ' → ' + (r.new || '—')];
-        if (r.clientAdded) parts.push('🆕 Новый клиент добавлен в «Клиенты».');
-        if (r.warn) parts.push('⚠️ ' + r.warn);
-        onSaved(r.order, parts.join(' '));
-      })
-      .catch(err => { setSaving(false); setError(errText(err)); });
+    const problem = clear || f.kind === 'list' ? '' : checkInput(value, f.kind);
+    if (problem) { setError(problem); return; }
+    onSubmit(f, value, clear);
   };
 
   const current = formatField(o[f.key], DISPLAY_FMT[f.key]);
@@ -200,6 +222,21 @@ function toServerText(text: string, kind: FieldMeta['kind']): string {
 // «Цена продажи — факт (₽)» → «Цена продажи — факт»
 function shortTitle(t: string): string {
   return t.replace(/\s*\([^)]*\)\s*$/, '');
+}
+
+// Те же правила, что parseFieldValue в боте (Edit.gs).
+function checkInput(text: string, kind: FieldMeta['kind']): string {
+  const t = text.trim();
+  if (!t) return kind === 'date' ? 'Выберите дату.' : 'Пустое значение. Чтобы очистить поле — нажмите «Очистить».';
+  const compact = t.replace(/[\s\u00a0]/g, '');
+  switch (kind) {
+    case 'int': return /^\d+$/.test(compact) && Number(compact) > 0 ? '' : 'Нужно целое число больше 0, например 100.';
+    case 'number': return /^\d+([.,]\d+)?$/.test(compact) ? '' : 'Нужно число без букв и знаков, например 2,5 или 3500.';
+    case 'link': return /^https?:\/\/\S+$/i.test(t) ? '' : 'Ссылка должна начинаться с https:// и быть без пробелов.';
+    case 'hs': return t.replace(/\D/g, '').length === 10 ? '' : 'Код ТН ВЭД — ровно 10 цифр. Не знаете — уточните у брокера.';
+    case 'client': return /^\d+$/.test(t) ? 'Похоже на число, а нужно имя клиента.' : '';
+    default: return '';
+  }
 }
 
 function errText(err: unknown): string {

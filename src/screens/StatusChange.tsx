@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ApiError, demoMode, previewStatus, setStatus } from '../api';
+import { ApiError, demoMode, previewAllStatuses, previewStatus, setStatus } from '../api';
 import { notifySuccess, useTelegramBack } from '../telegram';
 import type { Order, StatusPreview, StatusResult } from '../types';
 
@@ -28,6 +28,15 @@ const NOTE_TEXT: Record<StatusPreview['note'], string> = {
 // Сообщение клиенту отменить нельзя, поэтому без шага подтверждения не пишем.
 export function StatusChange({ order: o, statuses, onDone, onCancel }: Props) {
   const [step, setStep] = useState<Step>({ kind: 'pick' });
+  // Предпросмотры всех статусов грузим сразу: пока человек читает список, они уже придут.
+  const [previews, setPreviews] = useState<Record<string, StatusPreview> | null>(null);
+  useEffect(() => {
+    let alive = true;
+    previewAllStatuses(o, statuses)
+      .then(list => { if (alive) setPreviews(Object.fromEntries(list.map(p => [p.to, p]))); })
+      .catch(() => { /* не страшно: при нажатии запросим предпросмотр одного статуса */ });
+    return () => { alive = false; };
+  }, [o, statuses]);
 
   // «Назад» в шапке Telegram: из подтверждения — к выбору статуса, из выбора — в карточку.
   useEffect(() => {
@@ -37,6 +46,8 @@ export function StatusChange({ order: o, statuses, onDone, onCancel }: Props) {
   }, [step.kind, onCancel]);
 
   const choose = (status: string) => {
+    const ready = previews?.[status];
+    if (ready) { setStep({ kind: 'confirm', preview: ready }); return; }
     setStep({ kind: 'loading', status });
     previewStatus(o, status)
       .then(preview => setStep({ kind: 'confirm', preview }))

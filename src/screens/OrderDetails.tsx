@@ -3,6 +3,7 @@ import { StatusProgress } from '../components/StatusProgress';
 import { DETAIL_GROUPS } from '../fields';
 import { formatField, isNum, orderWarnings, rub, todayIso } from '../format';
 import { insideTelegram, openExternal, useTelegramBack } from '../telegram';
+import { timingText } from '../api';
 import type { Order, PaymentResult, StatusResult } from '../types';
 import { Payment } from './Payment';
 import { EditOrder } from './EditOrder';
@@ -53,12 +54,12 @@ export function OrderDetails({ order: o, chain, statuses, onBack, onOrderUpdated
   const closeStatus = useCallback(() => setMode('view'), []);
   const statusDone = useCallback((r: StatusResult) => {
     onOrderUpdated(r.order);
-    setNotice(resultText(r));
+    setNotice(resultText(r) + timingText());
     setMode('view');
   }, [onOrderUpdated]);
   const paymentDone = useCallback((r: PaymentResult) => {
     onOrderUpdated(r.order);
-    setNotice(paymentText(r));
+    setNotice(paymentText(r) + timingText());
     setMode('view');
   }, [onOrderUpdated]);
 
