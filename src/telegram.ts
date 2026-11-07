@@ -2,6 +2,7 @@ import {
   bindMiniAppCssVars,
   bindThemeParamsCssVars,
   expandViewport,
+  hapticFeedbackNotificationOccurred,
   hideBackButton,
   init,
   isTMA,
@@ -108,4 +109,11 @@ export function openExternal(url: string): void {
     if (insideTelegram) { openLink(url); return; }
   } catch { /* старый клиент — откроем обычным способом */ }
   window.open(url, '_blank', 'noopener');
+}
+
+// Лёгкая вибрация «готово» после сохранения. Нет поддержки — просто ничего не происходит.
+export function notifySuccess(): void {
+  try {
+    if (insideTelegram) hapticFeedbackNotificationOccurred('success');
+  } catch { /* не важно */ }
 }

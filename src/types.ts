@@ -52,3 +52,16 @@ export interface ApiErrorBody {
   code: 'bad_request' | 'unauthorized' | 'expired' | 'forbidden' | 'user_error' | 'internal' | 'network' | 'timeout';
   message: string;
 }
+
+// status.preview: что получит клиент. note: send — уйдёт text, noTg — клиент не подключён,
+// off — сообщение для статуса отключено в Справочниках, same — этот статус уже стоит.
+export interface StatusPreview {
+  row: number; id: string; from: string | null; to: string; client: string | null;
+  note: 'send' | 'noTg' | 'off' | 'same'; text: string;
+}
+
+export interface StatusResult {
+  changed: boolean;
+  notify: { result: 'sent' | 'noTg' | 'off' | 'dup' | 'fail'; error?: string } | null;
+  order: Order;
+}

@@ -1,6 +1,6 @@
 import { getInitData, insideTelegram } from './telegram';
 import { demoOrders } from './mock';
-import type { ApiErrorBody, OrdersList } from './types';
+import type { ApiErrorBody, Order, OrdersList, StatusPreview, StatusResult } from './types';
 
 const API_URL = (import.meta.env.VITE_API_URL || '').trim();
 // Apps Script иногда думает 5–10 секунд (холодный старт). Дольше 30 — считаем, что связи нет.
@@ -57,4 +57,25 @@ export async function fetchOrders(): Promise<OrdersList> {
     return demoOrders();
   }
   return call<OrdersList>('orders.list');
+}
+
+const demoWait = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+export async function previewStatus(o: Order, status: string): Promise<StatusPreview> {
+  if (demoMode) {
+    await demoWait(400);
+    const note = o.status === status ? 'same' : o.tgConnected ? 'send' : 'noTg';
+    return { row: o.row, id: o.id, from: o.status, to: status, client: o.client, note,
+      text: note === 'send' ? `📦 Заказ ${o.id} — новый статус: «${status}»\nТовар: ${o.item}\n\nЧто дальше: (демо-текст из Справочников)\n\nВопросы — просто напишите сюда.` : '' };
+  }
+  return call<StatusPreview>('status.preview', { row: o.row, id: o.id, status });
+}
+
+export async function setStatus(o: Order, status: string): Promise<StatusResult> {
+  if (demoMode) {
+    await demoWait(700);
+    return { changed: o.status !== status, notify: { result: o.tgConnected ? 'sent' : 'noTg' },
+      order: { ...o, status, statusDate: new Date().toISOString().slice(0, 16) } };
+  }
+  return call<StatusResult>('status.set', { row: o.row, id: o.id, status });
 }

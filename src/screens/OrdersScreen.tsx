@@ -48,6 +48,13 @@ export function OrdersScreen() {
     setOpenedId(o.id);
   }, []);
   const closeOrder = useCallback(() => setOpenedId(null), []);
+  // После записи в таблицу подменяем заказ в списке — без повторной загрузки всего списка.
+  const updateOrder = useCallback((fresh: Order) => {
+    setLoad(prev => prev.state !== 'ready' ? prev : {
+      state: 'ready',
+      data: { ...prev.data, orders: prev.data.orders.map(o => (o.id === fresh.id ? fresh : o)) },
+    });
+  }, []);
   useEffect(() => {
     if (openedId === null) requestAnimationFrame(() => window.scrollTo(0, listScroll.current));
   }, [openedId]);
@@ -75,7 +82,9 @@ export function OrdersScreen() {
   const today = todayIso();
 
   const opened = openedId && load.state === 'ready' ? load.data.orders.find(o => o.id === openedId) : undefined;
-  if (opened && view) return <OrderDetails order={opened} chain={view.chain} onBack={closeOrder} />;
+  if (opened && view && load.state === 'ready') {
+    return <OrderDetails order={opened} chain={view.chain} statuses={load.data.statuses} onBack={closeOrder} onOrderUpdated={updateOrder} />;
+  }
 
   return (
     <div className="screen">
