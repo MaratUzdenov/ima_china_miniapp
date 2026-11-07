@@ -1,6 +1,6 @@
 import { getInitData, insideTelegram } from './telegram';
-import { demoOrders } from './mock';
-import type { ApiErrorBody, Order, OrdersList, PaymentResult, StatusPreview, StatusResult } from './types';
+import { demoFieldsMeta, demoOrders } from './mock';
+import type { ApiErrorBody, FieldSetResult, FieldsMeta, Order, OrdersList, PaymentResult, StatusPreview, StatusResult } from './types';
 
 const API_URL = (import.meta.env.VITE_API_URL || '').trim();
 // Apps Script иногда думает 5–10 секунд (холодный старт). Дольше 30 — считаем, что связи нет.
@@ -101,4 +101,26 @@ export function newRequestId(): string {
   } catch {
     return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
   }
+}
+
+// Список полей меняется редко — грузим один раз за сеанс.
+let fieldsMetaPromise: Promise<FieldsMeta> | null = null;
+export function fetchFieldsMeta(): Promise<FieldsMeta> {
+  if (!fieldsMetaPromise) {
+    fieldsMetaPromise = (demoMode ? demoWait(300).then(demoFieldsMeta) : call<FieldsMeta>('fields.meta'));
+    fieldsMetaPromise.catch(() => { fieldsMetaPromise = null; }); // ошибка — в следующий раз попробуем снова
+  }
+  return fieldsMetaPromise;
+}
+
+// value — текст как ввёл человек (проверяет бэкенд, как в боте); clear — очистить поле.
+export async function setField(o: Order, key: string, value: string, clear = false): Promise<FieldSetResult> {
+  if (demoMode) {
+    await demoWait(500);
+    if (!clear && !value.trim()) throw new ApiError({ code: 'user_error', message: 'Пустое значение. Чтобы очистить поле — нажмите «Очистить».' });
+    const num = Number(value.replace(/\s/g, '').replace(',', '.'));
+    const v = clear ? null : (value.trim() !== '' && !isNaN(num) && /^[\d\s.,]+$/.test(value) ? num : value.trim());
+    return { key, title: key, old: String(o[key] ?? ''), new: clear ? '' : value, clientAdded: false, warn: '', order: { ...o, [key]: v } };
+  }
+  return call<FieldSetResult>('field.set', clear ? { row: o.row, id: o.id, key, clear: true } : { row: o.row, id: o.id, key, value });
 }

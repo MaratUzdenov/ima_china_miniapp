@@ -5,6 +5,7 @@ import { formatField, isNum, orderWarnings, rub, todayIso } from '../format';
 import { insideTelegram, openExternal, useTelegramBack } from '../telegram';
 import type { Order, PaymentResult, StatusResult } from '../types';
 import { Payment } from './Payment';
+import { EditOrder } from './EditOrder';
 import { StatusChange } from './StatusChange';
 
 interface Props {
@@ -45,7 +46,7 @@ function resultText(r: StatusResult): string {
 // Карточка заказа: все поля по группам, как в боте. Пока только просмотр —
 // смена статуса и оплата появятся, когда API научится писать в таблицу.
 export function OrderDetails({ order: o, chain, statuses, onBack, onOrderUpdated }: Props) {
-  const [mode, setMode] = useState<'view' | 'status' | 'payment'>('view');
+  const [mode, setMode] = useState<'view' | 'status' | 'payment' | 'edit'>('view');
   const changingStatus = mode !== 'view';
   const setChangingStatus = (on: boolean) => setMode(on ? 'status' : 'view');
   const [notice, setNotice] = useState('');
@@ -69,6 +70,9 @@ export function OrderDetails({ order: o, chain, statuses, onBack, onOrderUpdated
   }
   if (mode === 'payment') {
     return <Payment order={o} onDone={paymentDone} onCancel={closeStatus} />;
+  }
+  if (mode === 'edit') {
+    return <EditOrder order={o} onOrderUpdated={onOrderUpdated} onClose={closeStatus} />;
   }
   const warnings = orderWarnings(o, todayIso());
 
@@ -95,6 +99,7 @@ export function OrderDetails({ order: o, chain, statuses, onBack, onOrderUpdated
         <div className="actions">
           <button className="button" onClick={() => { setNotice(''); setChangingStatus(true); }}>🔄 Сменить статус</button>
           <button className="button button--secondary" onClick={() => { setNotice(''); setMode('payment'); }}>💰 Внести оплату</button>
+          <button className="button button--secondary" onClick={() => { setNotice(''); setMode('edit'); }}>✏️ Редактировать</button>
         </div>
         {notice && <div className="notice">{notice}</div>}
         {!o.tgConnected && (
@@ -111,9 +116,6 @@ export function OrderDetails({ order: o, chain, statuses, onBack, onOrderUpdated
         </section>
       ))}
 
-      <div className="details__note details__note--center">
-        Другие поля пока меняйте в боте: «📋 Заказы» → заказ → ✏️ Редактировать.
-      </div>
     </div>
   );
 }

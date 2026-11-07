@@ -1,4 +1,4 @@
-import type { Order, OrdersList } from './types';
+import type { FieldMeta, FieldsMeta, Order, OrdersList } from './types';
 
 // Демо-данные в том же формате, что отдаёт Api.gs. Нужны, пока API не подключён, и для проверки в браузере.
 const STATUSES = ['Принят', 'Оплачен', 'Выкуплен', 'На складе в Китае', 'В пути',
@@ -42,4 +42,16 @@ export function demoOrders(): OrdersList {
     lists: { method: ['Авиа', 'Авто', 'ЖД', 'Море'], pickup: ['Черкесск', 'Москва'] },
     serverTime: '2026-11-07T12:00',
   };
+}
+
+// Демо-описание полей — как EDIT_GROUPS в Edit.gs. В рабочем режиме приходит с бэкенда.
+export function demoFieldsMeta(): FieldsMeta {
+  const f = (key: string, title: string, kind: FieldMeta['kind'], options: string[] = [], clearable = true): FieldMeta =>
+    ({ key, title, kind, hint: kind === 'list' ? 'Выберите вариант' : kind === 'date' ? 'Дата' : kind === 'int' ? 'Целое число больше 0' : kind === 'number' ? 'Число, дробная часть через запятую' : 'Любой текст', note: '', clearable, options });
+  return { groups: [
+    { title: '🛍 Товар', fields: [f('item', 'Товар', 'text', [], false), f('variant', 'Цвет / размер', 'text'), f('qty', 'Кол-во', 'int'), f('priceCny', 'Цена за ед. (¥)', 'number'), f('link', 'Ссылка (1688/Taobao)', 'link')] },
+    { title: '🚚 Доставка', fields: [f('weight', 'Вес (кг)', 'number'), f('volume', 'Объём (м³)', 'number'), f('method', 'Способ доставки', 'list', ['Авиа', 'Авто', 'ЖД', 'Море']), f('pickup', 'Пункт выдачи карго', 'list', ['Черкесск', 'Москва']), f('shipType', 'Тип отправки', 'list', ['Посылка физлицу', 'Коммерческая партия']), f('track', 'Трек-номер', 'text'), f('hsCode', 'Код ТН ВЭД', 'hs'), f('deliveredDate', 'Факт. дата выдачи', 'date')] },
+    { title: '💰 Деньги', fields: [f('priceFact', 'Цена продажи — факт (₽)', 'number'), f('cargoFact', 'Карго — факт (₽)', 'number'), f('localDelivery', 'Доставка по региону (₽)', 'number'), f('cargoCommFact', 'Комиссия от карго — факт (₽)', 'number'), f('paid', 'Получено (₽)', 'number'), f('paidDate', 'Дата оплаты', 'date'), f('scheme', 'Схема оплаты', 'list', ['Предоплата 100%', 'Выкупаем сами, оплата потом', 'Через карго (комиссия от карго)']), f('rateFixed', 'Курс юаня (фикс.)', 'number')] },
+    { title: '👤 Прочее', fields: [f('client', 'Клиент', 'client', [], false), f('createdBy', 'Кто внёс', 'list', ['Марат', 'Алим', 'Ислам']), f('comment', 'Комментарий', 'text')] },
+  ] };
 }

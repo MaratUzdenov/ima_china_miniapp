@@ -75,3 +75,14 @@ export interface PaymentResult {
   duplicate: boolean;    // повторный запрос — ничего не прибавлено
   order: Order;
 }
+
+// fields.meta: какие поля можно править — те же, что в боте (Edit.gs → EDIT_GROUPS).
+export type FieldKind = 'text' | 'int' | 'number' | 'date' | 'link' | 'hs' | 'client' | 'list';
+export interface FieldMeta {
+  key: string; title: string; kind: FieldKind; hint: string; note: string; clearable: boolean; options: string[];
+}
+export interface FieldsMeta { groups: { title: string; fields: FieldMeta[] }[] }
+
+export interface FieldSetResult {
+  key: string; title: string; old: string; new: string; clientAdded: boolean; warn: string; order: Order;
+}

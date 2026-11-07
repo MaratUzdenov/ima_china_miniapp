@@ -175,3 +175,14 @@ button.item + button.item { margin-top: 10px; border-top: 1px solid var(--tg-the
   background: none; color: var(--tg-theme-link-color); border: 1px solid currentColor; border-radius: 999px;
 }
 .notice--error { color: var(--tg-theme-destructive-text-color); }
+
+/* Правка полей */
+.field--button {
+  width: 100%; background: none; border: 0; border-top: 1px solid var(--tg-theme-section-separator-color);
+  color: inherit; font: inherit; cursor: pointer; text-align: left; min-height: var(--tap); align-items: center;
+}
+.field--button:first-child { border-top: 0; }
+.field--button .field__value { color: var(--tg-theme-text-color); }
+.field--button .field__value--hint { color: var(--tg-theme-hint-color); }
+.option--on { border-color: var(--tg-theme-button-color); font-weight: 600; }
+.textarea { min-height: 120px; padding: 10px 14px; resize: vertical; font-size: 16px; font-family: inherit; }
