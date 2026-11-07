@@ -6,10 +6,11 @@ interface Props {
   items: Order[];   // товары одного заказа клиента (одна группа)
   chain: string[];
   today: string;
+  onOpen: (o: Order) => void;
 }
 
 // Карточка заказа клиента. Несколько товаров («вместе с заказом A-…») — одной карточкой, каждый своей строкой.
-export function OrderGroupCard({ items, chain, today }: Props) {
+export function OrderGroupCard({ items, chain, today, onOpen }: Props) {
   const first = items[0]; // самый ранний товар группы — по нему дата
   const debt = items.reduce((sum, o) => sum + (isNum(o.due) && o.due > 0 ? o.due : 0), 0);
   return (
@@ -23,7 +24,7 @@ export function OrderGroupCard({ items, chain, today }: Props) {
       {items.map(o => {
         const warnings = orderWarnings(o, today);
         return (
-          <div key={o.id} className="item">
+          <button key={o.id} className="item" onClick={() => onOpen(o)}>
             <div className="item__title">
               {o.item || 'Товар не указан'}
               {isNum(o.qty) && <span className="item__qty"> × {o.qty}</span>}
@@ -35,7 +36,8 @@ export function OrderGroupCard({ items, chain, today }: Props) {
                 {warnings.map(w => <span key={w.text} className={'chip chip--' + w.level}>{w.text}</span>)}
               </div>
             )}
-          </div>
+            <span className="item__more">Подробнее ›</span>
+          </button>
         );
       })}
       {debt > 0 && <footer className="card__debt">Осталось получить: <b>{rub(debt)}</b></footer>}

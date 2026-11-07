@@ -43,3 +43,33 @@ export function plural(n: number, one: string, few: string, many: string): strin
   if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
   return many;
 }
+
+const num2 = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 });
+const num4 = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 4 });
+
+// «2026-11-07T11:49» → «7 нояб., 11:49»
+export function shortDateTime(iso: string | null): string {
+  if (!iso) return '';
+  const time = iso.slice(11, 16);
+  return shortDate(iso) + (time ? ', ' + time : '');
+}
+
+// Значение поля для показа. Текст из серых колонок («Укажите вес») возвращаем как подсказку.
+export function formatField(v: unknown, fmt: string | undefined): { text: string; isHint: boolean } {
+  if (v === null || v === undefined || v === '') return { text: '—', isHint: true };
+  if (typeof v === 'string' && fmt && !['text', 'link', 'date', 'datetime'].includes(fmt)) return { text: v, isHint: true };
+  if (typeof v === 'number') {
+    switch (fmt) {
+      case 'money': return { text: rub(v), isHint: false };
+      case 'cny': return { text: num2.format(v) + ' ¥', isHint: false };
+      case 'kg': return { text: num2.format(v) + ' кг', isHint: false };
+      case 'm3': return { text: num4.format(v) + ' м³', isHint: false };
+      case 'pct': return { text: (v * 100).toFixed(1).replace('.', ',') + '%', isHint: false };
+      case 'rate': return { text: num4.format(v) + ' ₽', isHint: false };
+      default: return { text: num2.format(v), isHint: false };
+    }
+  }
+  if (fmt === 'date') return { text: shortDate(String(v)), isHint: false };
+  if (fmt === 'datetime') return { text: shortDateTime(String(v)), isHint: false };
+  return { text: String(v), isHint: false };
+}

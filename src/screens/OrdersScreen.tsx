@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError, demoMode, fetchOrders } from '../api';
 import { OrderGroupCard } from '../components/OrderGroupCard';
 import { EmptyState, ErrorState, SkeletonList } from '../components/States';
+import { OrderDetails } from './OrderDetails';
 import { norm, todayIso } from '../format';
 import type { Order, OrdersList } from '../types';
 
@@ -39,6 +40,17 @@ export function OrdersScreen() {
   const [load, setLoad] = useState<Load>({ state: 'loading' });
   const [tab, setTab] = useState<Tab>('active');
   const [query, setQuery] = useState('');
+  const [openedId, setOpenedId] = useState<string | null>(null);
+  const listScroll = useRef(0); // где был список, чтобы вернуться на то же место
+
+  const openOrder = useCallback((o: Order) => {
+    listScroll.current = window.scrollY;
+    setOpenedId(o.id);
+  }, []);
+  const closeOrder = useCallback(() => setOpenedId(null), []);
+  useEffect(() => {
+    if (openedId === null) requestAnimationFrame(() => window.scrollTo(0, listScroll.current));
+  }, [openedId]);
 
   const reload = useCallback(() => {
     setLoad({ state: 'loading' });
@@ -61,6 +73,9 @@ export function OrdersScreen() {
   }, [load, tab, query]);
 
   const today = todayIso();
+
+  const opened = openedId && load.state === 'ready' ? load.data.orders.find(o => o.id === openedId) : undefined;
+  if (opened && view) return <OrderDetails order={opened} chain={view.chain} onBack={closeOrder} />;
 
   return (
     <div className="screen">
@@ -106,7 +121,7 @@ export function OrdersScreen() {
       {view && view.groups.length > 0 && (
         <div className="list">
           {view.groups.map(items => (
-            <OrderGroupCard key={items[0].groupId} items={items} chain={view.chain} today={today} />
+            <OrderGroupCard key={items[0].groupId} items={items} chain={view.chain} today={today} onOpen={openOrder} />
           ))}
           <button className="button button--ghost" onClick={reload}>Обновить</button>
         </div>

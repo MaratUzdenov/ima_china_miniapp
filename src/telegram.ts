@@ -12,6 +12,7 @@ import {
   mountThemeParamsSync,
   mountViewport,
   offBackButtonClick,
+  openLink,
   onBackButtonClick,
   retrieveRawInitData,
   showBackButton,
@@ -83,4 +84,12 @@ export function useTelegramBack(handler: (() => void) | null): () => void {
     offBackButtonClick(handler);
     hideBackButton();
   };
+}
+
+// Ссылки (1688, Taobao) — во внешнем браузере: внутри Mini App они откроются криво или не откроются.
+export function openExternal(url: string): void {
+  try {
+    if (insideTelegram) { openLink(url); return; }
+  } catch { /* старый клиент — откроем обычным способом */ }
+  window.open(url, '_blank', 'noopener');
 }
