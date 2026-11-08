@@ -213,7 +213,6 @@ button.item + button.item { margin-top: 10px; border-top: 1px solid var(--tg-the
 .dash { display: flex; flex-direction: column; }
 .dash__title { margin: 0 0 6px; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
 .dash__title--plain { margin-bottom: 8px; }
-.dash__help { margin-bottom: 8px; }
 .dash__big { font-size: 30px; font-weight: 700; line-height: 1.15; letter-spacing: -0.5px; }
 .dash__big--red { color: var(--tg-theme-destructive-text-color); }
 .dash__big--hint { color: var(--tg-theme-hint-color); }
@@ -279,3 +278,19 @@ button.item + button.item { margin-top: 10px; border-top: 1px solid var(--tg-the
 /* Контент не должен прятаться под панелью */
 .screen--tabbar { padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + var(--gap) * 2); }
 .screen--dash { padding-top: var(--gap); }
+
+/* Всплывающая подсказка «?»: поверх экрана, тёмная на светлой теме и светлая на тёмной (цвета темы наоборот). */
+.field__help--on { background: var(--tg-theme-hint-color); color: var(--tg-theme-bg-color); }
+.tip {
+  position: fixed; z-index: 10; max-width: min(300px, calc(100vw - 24px));
+  padding: 10px 12px; border-radius: 10px; font-size: 13px; line-height: 1.4; font-weight: 400;
+  background: var(--tg-theme-text-color); color: var(--tg-theme-bg-color);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  animation: tip-in 0.12s ease-out;
+}
+.tip::after {
+  content: ''; position: absolute; left: calc(var(--arrow, 50%) - 6px); top: 100%;
+  border: 6px solid transparent; border-top-color: var(--tg-theme-text-color);
+}
+.tip--below::after { top: auto; bottom: 100%; border-top-color: transparent; border-bottom-color: var(--tg-theme-text-color); }
+@keyframes tip-in { from { opacity: 0; transform: translateY(2px); } }

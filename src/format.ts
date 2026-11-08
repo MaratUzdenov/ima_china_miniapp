@@ -30,6 +30,8 @@ export function orderWarnings(o: Order, today: string): Warning[] {
   if (!o.isFinal && o.eta && o.eta < today) w.push({ text: 'просрочен', level: 'red' });
   if (o.isFinal) return w;
   if (!isNum(o.weight) || o.weight <= 0) w.push({ text: 'нет веса', level: 'amber' });
+  // Вес есть, а карго не посчитано — нет тарифа у способа доставки (как «Карго не посчитано» в /summary).
+  else if (!isNum(o.cargoFact) && !isNum(o.cargoEst)) w.push({ text: 'нет тарифа карго', level: 'red' });
   if (!o.hasSupplierLink) w.push({ text: 'нет ссылки', level: 'amber' });
   if (!o.scheme) w.push({ text: 'нет схемы оплаты', level: 'amber' });
   if (!o.tgConnected) w.push({ text: 'клиент без Telegram', level: 'amber' });

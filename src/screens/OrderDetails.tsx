@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { StatusProgress } from '../components/StatusProgress';
+import { HelpTip } from '../components/HelpTip';
 import { DETAIL_GROUPS } from '../fields';
 import { formatField, isNum, orderWarnings, rub, todayIso } from '../format';
 import { insideTelegram, openExternal, useTelegramBack } from '../telegram';
@@ -122,21 +123,17 @@ export function OrderDetails({ order: o, chain, statuses, onBack, onOrderUpdated
 }
 
 function FieldRow({ title, value, fmt, hint }: { title: string; value: unknown; fmt?: string; hint?: string }) {
-  const [showHint, setShowHint] = useState(false);
   const shown = formatField(value, fmt);
   const isLink = fmt === 'link' && typeof value === 'string' && /^https?:\/\//i.test(value);
   return (
     <div className="field">
       <dt className="field__title">
         {title}
-        {hint && (
-          <button className="field__help" aria-label={'Подсказка: ' + title} onClick={() => setShowHint(v => !v)}>?</button>
-        )}
+        {hint && <HelpTip text={hint} label={title} />}
       </dt>
       <dd className={'field__value' + (shown.isHint ? ' field__value--hint' : '')}>
         {isLink ? <button className="link" onClick={() => openExternal(value as string)}>Открыть ↗</button> : shown.text}
       </dd>
-      {hint && showHint && <div className="field__hint">{hint}</div>}
     </div>
   );
 }

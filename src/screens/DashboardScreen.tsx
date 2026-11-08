@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { ApiError, demoMode, fetchDashboard, takeDashboardStale } from '../api';
 import { ErrorState } from '../components/States';
+import { HelpTip } from '../components/HelpTip';
 import { isNum, norm, plural, rub, shortDate, shortDateTime } from '../format';
 import { readPref, savePref } from '../prefs';
 import type { DashboardData, DashboardDebtor, DashboardPeriod, DashboardWarning, Order, OrdersFilter } from '../types';
@@ -135,14 +136,12 @@ function isEmpty(d: DashboardData): boolean {
 // ── Виджеты ──
 
 function Card({ title, help, children }: { title: string; help?: string; children: ReactNode }) {
-  const [showHelp, setShowHelp] = useState(false);
   return (
     <section className="card dash">
       <h2 className="dash__title">
         {title}
-        {help && <button className="field__help" aria-label="Подсказка" onClick={() => setShowHelp(v => !v)}>?</button>}
+        {help && <HelpTip text={help} label={title} />}
       </h2>
-      {showHelp && help && <div className="field__hint dash__help">{help}</div>}
       {children}
     </section>
   );
@@ -245,7 +244,7 @@ function ProfitCard({ data, onOpen }: { data: DashboardData; onOpen: (f: OrdersF
         по {profit.counted} {plural(profit.counted, 'заказу', 'заказам', 'заказам')}
       </div>
       {profit.missing > 0 && (
-        <Row tone="hint" left={`Не посчитана в ${profit.missing} — нет цены, веса или способа доставки`} right=""
+        <Row tone="hint" left={`Не посчитана в ${profit.missing} — нет веса, способа доставки или тарифа карго`} right=""
           onClick={() => onOpen(byIds('Прибыль не посчитана', profit.missingIds))} />
       )}
     </Card>
