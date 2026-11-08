@@ -1,6 +1,6 @@
 import { getInitData, insideTelegram } from './telegram';
-import { demoFieldsMeta, demoOrderForm, demoOrders } from './mock';
-import type { ApiErrorBody, FieldSetResult, FieldsMeta, NewOrderPayload, NewOrderResult, Order, OrderFormData, OrdersList, PaymentResult, StatusPreview, StatusResult } from './types';
+import { demoDashboard, demoFieldsMeta, demoOrderForm, demoOrders } from './mock';
+import type { ApiErrorBody, DashboardData, DashboardPeriod, FieldSetResult, FieldsMeta, NewOrderPayload, NewOrderResult, Order, OrderFormData, OrdersList, PaymentResult, StatusPreview, StatusResult } from './types';
 
 const API_URL = (import.meta.env.VITE_API_URL || '').trim();
 // Apps Script иногда думает 5–10 секунд (холодный старт). Дольше 30 — считаем, что связи нет.
@@ -157,4 +157,19 @@ export async function createOrder(payload: NewOrderPayload, requestId: string): 
     return { ids, groupId: ids[0], client: payload.city ? `${payload.client} (${payload.city})` : payload.client, clientAdded: true, tgConnected: false, duplicate: false, orders: [] };
   }
   return call<NewOrderResult>('order.create', { ...payload, requestId });
+}
+
+// Дашборд. Бэкенд помнит ответ 90 секунд; refresh — посчитать заново (после своей правки или по кнопке «Обновить»).
+export async function fetchDashboard(period: DashboardPeriod, refresh = false): Promise<DashboardData> {
+  if (demoMode) { await demoWait(600); return demoDashboard(period); }
+  return call<DashboardData>('dashboard.get', { period, refresh });
+}
+
+// Отметка «в заказах что-то поменяли» — дашборд при следующем открытии попросит свежие цифры, а не из памяти.
+let dashboardStale = false;
+export function markDashboardStale(): void { dashboardStale = true; }
+export function takeDashboardStale(): boolean {
+  const v = dashboardStale;
+  dashboardStale = false;
+  return v;
 }

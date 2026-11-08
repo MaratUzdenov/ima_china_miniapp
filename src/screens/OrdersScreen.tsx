@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ApiError, demoMode, fetchOrders } from '../api';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { ApiError, demoMode, fetchOrders, markDashboardStale } from '../api';
 import { OrderGroupCard } from '../components/OrderGroupCard';
 import { EmptyState, ErrorState, SkeletonList } from '../components/States';
 import { OrderDetails } from './OrderDetails';
 import { NewOrder } from './NewOrder';
 import { norm, todayIso } from '../format';
-import type { Order, OrdersList } from '../types';
+import type { Order, OrdersFilter, OrdersList } from '../types';
 
 type Tab = 'active' | 'delivered' | 'all';
 const TABS: { key: Tab; title: string }[] = [
@@ -37,7 +37,14 @@ function matchesQuery(o: Order, q: string): boolean {
   return !q || [o.id, o.client, o.item, o.track].some(v => norm(v).includes(q));
 }
 
-export function OrdersScreen() {
+interface Props {
+  nav?: ReactNode;                    // переключатель «Заказы / Дашборд»
+  filter?: OrdersFilter | null;       // пришли с дашборда: показать только эти заказы
+  onClearFilter?: () => void;
+  onBackToDashboard?: () => void;
+}
+
+export function OrdersScreen({ nav, filter = null, onClearFilter, onBackToDashboard }: Props) {
   const [load, setLoad] = useState<Load>({ state: 'loading' });
   const [tab, setTab] = useState<Tab>('active');
   const [query, setQuery] = useState('');
@@ -53,6 +60,7 @@ export function OrdersScreen() {
   const closeOrder = useCallback(() => setOpenedId(null), []);
   // После записи в таблицу подменяем заказ в списке — без повторной загрузки всего списка.
   const updateOrder = useCallback((fresh: Order) => {
+    markDashboardStale(); // цифры дашборда поменялись — при открытии он попросит свежие
     setLoad(prev => prev.state !== 'ready' ? prev : {
       state: 'ready',
       data: { ...prev.data, orders: prev.data.orders.map(o => (o.id === fresh.id ? fresh : o)) },
@@ -78,13 +86,14 @@ export function OrdersScreen() {
     const chain = statuses.slice(0, statuses.indexOf(delivered) + 1);
     const q = norm(query);
     const counts = Object.fromEntries(TABS.map(t => [t.key, orders.filter(o => matchesTab(o, t.key, delivered)).length])) as Record<Tab, number>;
-    const filtered = orders.filter(o => matchesTab(o, tab, delivered) && matchesQuery(o, q));
+    // Фильтр с дашборда — по всем заказам, без вкладок.
+    const filtered = orders.filter(o => (filter ? filter.match(o) : matchesTab(o, tab, delivered)) && matchesQuery(o, q));
     return { chain, counts, groups: groupOrders(filtered), total: orders.length };
-  }, [load, tab, query]);
+  }, [load, tab, query, filter]);
 
   const today = todayIso();
 
-  if (creating) return <NewOrder onClose={closeNew} onCreated={reload} />;
+  if (creating) return <NewOrder onClose={closeNew} onCreated={() => { markDashboardStale(); reload(); }} />;
 
   const opened = openedId && load.state === 'ready' ? load.data.orders.find(o => o.id === openedId) : undefined;
   if (opened && view && load.state === 'ready') {
@@ -94,6 +103,7 @@ export function OrdersScreen() {
   return (
     <div className="screen">
       <div className="toolbar">
+        {nav}
         <button className="button new-order" onClick={() => setCreating(true)}>➕ Новый заказ</button>
         <input
           className="search"
@@ -103,6 +113,13 @@ export function OrdersScreen() {
           value={query}
           onChange={e => setQuery(e.target.value)}
         />
+        {filter ? (
+          <div className="filter-bar">
+            <button className="link" onClick={onBackToDashboard}>‹ Дашборд</button>
+            <span className="filter-bar__title">{filter.title}{view ? ' · ' + view.groups.reduce((n, g) => n + g.length, 0) : ''}</span>
+            <button className="link" onClick={onClearFilter} aria-label="Сбросить фильтр">✕ Все</button>
+          </div>
+        ) : (
         <div className="tabs" role="tablist">
           {TABS.map(t => (
             <button
@@ -116,6 +133,7 @@ export function OrdersScreen() {
             </button>
           ))}
         </div>
+        )}
       </div>
 
       {demoMode && (
@@ -130,7 +148,8 @@ export function OrdersScreen() {
       {view && view.total > 0 && view.groups.length === 0 && (
         <EmptyState
           title={query ? 'Ничего не нашлось' : 'Здесь пусто'}
-          hint={query ? 'Попробуйте часть слова, например «гвозд», или вкладку «Все».' : 'Загляните во вкладку «Все».'}
+          hint={query ? 'Попробуйте часть слова, например «гвозд», или вкладку «Все».'
+            : filter ? 'Похоже, эти заказы уже поправили. Нажмите «✕ Все» или обновите дашборд.' : 'Загляните во вкладку «Все».'}
         />
       )}
       {view && view.groups.length > 0 && (

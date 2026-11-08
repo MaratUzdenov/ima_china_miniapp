@@ -106,3 +106,46 @@ export interface NewOrderPayload {
 export interface NewOrderResult {
   ids: string[]; groupId: string; client: string; clientAdded: boolean; tgConnected: boolean; duplicate: boolean; orders: Order[];
 }
+
+// dashboard.get (Dashboard.gs → buildDashboardData в Summary.gs). Всё считает бэкенд — те же цифры, что /summary в боте.
+export type DashboardPeriod = '7d' | '30d' | 'all';
+
+export interface DashboardWarning {
+  key: string;
+  level: 'red' | 'amber';
+  title: string;
+  kind: 'orders' | 'clients'; // в ids — номера заказов или имена клиентов
+  ids: string[];
+}
+
+export interface DashboardDebtor {
+  name: string; sum: number; since: string | null;
+  days: number | null;   // null — товар ещё не выдан, долг ещё не начался
+  overdue: boolean;      // дольше «Долг клиента старше» из Настроек
+  ids: string[];
+}
+
+export interface DashboardData {
+  updatedAt: string;
+  cached: boolean;
+  thresholds: { marginWarn: number; staleDays: number; debtDays: number };
+  period: {
+    key: DashboardPeriod; days: number; from: string | null;
+    newOrders: { total: number; cancelled: number };
+    earned: { sum: number; counted: number; missingIds: string[] };
+  };
+  inWork: { total: number; byStatus: { status: string; count: number }[] };
+  profit: { sum: number; counted: number; missing: number; missingIds: string[] };
+  debts: { total: number; overdueCount: number; clients: DashboardDebtor[]; cargo: { sum: number; ids: string[] } };
+  delivery: {
+    avgDays: number | null; minDays: number | null; maxDays: number | null; counted: number;
+    noDateIds: string[]; badDateIds: string[];
+  };
+  warnings: DashboardWarning[];
+}
+
+// Переход с дашборда в «Заказы» с готовым фильтром.
+export interface OrdersFilter {
+  title: string;
+  match: (o: Order) => boolean;
+}

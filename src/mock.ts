@@ -1,4 +1,4 @@
-import type { FieldMeta, FieldsMeta, Order, OrderFormData, OrdersList } from './types';
+import type { DashboardData, DashboardPeriod, FieldMeta, FieldsMeta, Order, OrderFormData, OrdersList } from './types';
 
 // Демо-данные в том же формате, что отдаёт Api.gs. Нужны, пока API не подключён, и для проверки в браузере.
 const STATUSES = ['Принят', 'Оплачен', 'Выкуплен', 'На складе в Китае', 'В пути',
@@ -69,5 +69,36 @@ export function demoOrderForm(): OrderFormData {
     schemes: ['Предоплата 100%', 'Выкупаем сами, оплата потом', 'Через карго (комиссия от карго)'],
     defaultMethod: 'Авто',
     maxItems: 20,
+  };
+}
+
+// Демо-дашборд — те же демо-заказы, посчитанные «руками» так, как посчитал бы бэкенд.
+export function demoDashboard(period: DashboardPeriod): DashboardData {
+  const byPeriod = {
+    '7d': { days: 7, from: '2026-11-02', newOrders: { total: 5, cancelled: 0 } },
+    '30d': { days: 30, from: '2026-10-09', newOrders: { total: 6, cancelled: 1 } },
+    'all': { days: 0, from: null, newOrders: { total: 6, cancelled: 1 } },
+  }[period];
+  return {
+    updatedAt: '2026-11-08T09:05',
+    cached: false,
+    thresholds: { marginWarn: 0.15, staleDays: 14, debtDays: 7 },
+    period: { key: period, ...byPeriod, earned: { sum: -350, counted: 1, missingIds: [] } },
+    inWork: { total: 4, byStatus: [
+      { status: 'Принят', count: 1 }, { status: 'Оплачен', count: 1 }, { status: 'В пути', count: 1 }, { status: 'Проблема', count: 1 },
+    ] },
+    profit: { sum: 13350, counted: 3, missing: 1, missingIds: ['A-20261107-02'] },
+    debts: {
+      total: 4800, overdueCount: 0,
+      clients: [{ name: 'Елена (Москва)', sum: 4800, since: '2026-11-06', days: 2, overdue: false, ids: ['A-20261106-03'] }],
+      cargo: { sum: 3000, ids: ['A-20261105-01'] },
+    },
+    delivery: { avgDays: 4, minDays: 4, maxDays: 4, counted: 1, noDateIds: [], badDateIds: [] },
+    warnings: [
+      { key: 'late', level: 'red', title: 'Прошла ожидаемая дата', kind: 'orders', ids: ['A-20261106-03'] },
+      { key: 'noWeight', level: 'amber', title: 'Не указан вес', kind: 'orders', ids: ['A-20261107-02', 'A-20261105-01'] },
+      { key: 'noLink', level: 'amber', title: 'Нет ссылки на 1688/Taobao', kind: 'orders', ids: ['A-20261107-02', 'A-20261105-01'] },
+      { key: 'noScheme', level: 'amber', title: 'Не выбрана схема оплаты', kind: 'orders', ids: ['A-20261107-02'] },
+    ],
   };
 }
