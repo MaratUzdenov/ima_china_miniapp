@@ -91,8 +91,8 @@ export function DashboardScreen({ nav, active, onOpenOrders }: Props) {
   const refresh = () => fetchData(period, true);
 
   return (
-    <div className="screen">
-      <div className="toolbar">{nav}</div>
+    <div className="screen screen--tabbar screen--dash">
+      {nav}
       {demoMode && <div className="banner">Демо-данные: таблица ещё не подключена.</div>}
 
       {load.state === 'loading' && <DashboardSkeleton />}

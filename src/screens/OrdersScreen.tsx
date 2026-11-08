@@ -38,7 +38,7 @@ function matchesQuery(o: Order, q: string): boolean {
 }
 
 interface Props {
-  nav?: ReactNode;                    // переключатель «Заказы / Дашборд»
+  nav?: ReactNode;                    // нижняя панель «Заказы / Дашборд»
   filter?: OrdersFilter | null;       // пришли с дашборда: показать только эти заказы
   onClearFilter?: () => void;
   onBackToDashboard?: () => void;
@@ -101,9 +101,9 @@ export function OrdersScreen({ nav, filter = null, onClearFilter, onBackToDashbo
   }
 
   return (
-    <div className="screen">
+    <div className={'screen' + (nav ? ' screen--tabbar' : '')}>
+      {nav}
       <div className="toolbar">
-        {nav}
         <button className="button new-order" onClick={() => setCreating(true)}>➕ Новый заказ</button>
         <input
           className="search"

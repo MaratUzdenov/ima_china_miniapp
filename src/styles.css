@@ -201,7 +201,6 @@ button.item + button.item { margin-top: 10px; border-top: 1px solid var(--tg-the
 .screen--details > .button { width: 100%; }
 
 /* Разделы и фильтр с дашборда */
-.section-nav { margin: 0 0 10px; }
 .filter-bar {
   display: flex; align-items: center; gap: 10px; margin-top: 8px; min-height: 36px;
   padding: 0 12px; border-radius: 10px; background: var(--tg-theme-section-bg-color);
@@ -258,3 +257,25 @@ button.item + button.item { margin-top: 10px; border-top: 1px solid var(--tg-the
 .dash__refresh { min-height: var(--tap); padding: 0 4px; }
 .dash--refreshing .card { opacity: 0.6; transition: opacity 0.2s; }
 .dash__skeleton-big { height: 28px; width: 55%; }
+
+/* Нижняя панель разделов. Отступ снизу — под «полоску» iPhone (safe area), иначе кнопки уйдут под неё. */
+:root { --tabbar-h: 56px; --safe-bottom: env(safe-area-inset-bottom, 0px); }
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 2;
+  display: flex; justify-content: center; gap: 4px;
+  padding: 4px 12px calc(4px + var(--safe-bottom));
+  background: var(--tg-theme-bottom-bar-bg-color, var(--tg-theme-section-bg-color));
+  border-top: 1px solid var(--tg-theme-section-separator-color);
+}
+.tabbar__item {
+  flex: 1; max-width: 200px; min-height: 48px; border: 0; border-radius: 12px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  background: none; color: var(--tg-theme-hint-color); font: inherit;
+}
+.tabbar__item--on { color: var(--tg-theme-button-color); background: var(--tg-theme-secondary-bg-color); }
+.tabbar__icon { font-size: 20px; line-height: 1; filter: grayscale(1); opacity: 0.7; }
+.tabbar__item--on .tabbar__icon { filter: none; opacity: 1; }
+.tabbar__title { font-size: 12px; font-weight: 600; }
+/* Контент не должен прятаться под панелью */
+.screen--tabbar { padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + var(--gap) * 2); }
+.screen--dash { padding-top: var(--gap); }
