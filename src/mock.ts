@@ -1,4 +1,4 @@
-import type { FieldMeta, FieldsMeta, Order, OrdersList } from './types';
+import type { FieldMeta, FieldsMeta, Order, OrderFormData, OrdersList } from './types';
 
 // Демо-данные в том же формате, что отдаёт Api.gs. Нужны, пока API не подключён, и для проверки в браузере.
 const STATUSES = ['Принят', 'Оплачен', 'Выкуплен', 'На складе в Китае', 'В пути',
@@ -54,4 +54,20 @@ export function demoFieldsMeta(): FieldsMeta {
     { title: '💰 Деньги', fields: [f('priceFact', 'Цена продажи — факт (₽)', 'number'), f('cargoFact', 'Карго — факт (₽)', 'number'), f('localDelivery', 'Доставка по региону (₽)', 'number'), f('cargoCommFact', 'Комиссия от карго — факт (₽)', 'number'), f('paid', 'Получено (₽)', 'number'), f('paidDate', 'Дата оплаты', 'date'), f('scheme', 'Схема оплаты', 'list', ['Предоплата 100%', 'Выкупаем сами, оплата потом', 'Через карго (комиссия от карго)']), f('rateFixed', 'Курс юаня (фикс.)', 'number')] },
     { title: '👤 Прочее', fields: [f('client', 'Клиент', 'client', [], false), f('createdBy', 'Кто внёс', 'list', ['Марат', 'Алим', 'Ислам']), f('comment', 'Комментарий', 'text')] },
   ] };
+}
+
+export function demoOrderForm(): OrderFormData {
+  return {
+    clients: [
+      { name: 'Ахмат (Теберда)', city: '', tgConnected: false },
+      { name: 'Елена (Москва)', city: 'Москва', tgConnected: true },
+      { name: 'Ислам Байрамуков', city: 'Черкесск', tgConnected: false },
+      { name: 'Мадина (Черкесск)', city: '', tgConnected: true },
+    ],
+    pickups: ['Черкесск', 'Москва'],
+    shipTypes: ['Посылка физлицу', 'Коммерческая партия'],
+    schemes: ['Предоплата 100%', 'Выкупаем сами, оплата потом', 'Через карго (комиссия от карго)'],
+    defaultMethod: 'Авто',
+    maxItems: 20,
+  };
 }

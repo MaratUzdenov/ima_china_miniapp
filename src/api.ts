@@ -1,6 +1,6 @@
 import { getInitData, insideTelegram } from './telegram';
-import { demoFieldsMeta, demoOrders } from './mock';
-import type { ApiErrorBody, FieldSetResult, FieldsMeta, Order, OrdersList, PaymentResult, StatusPreview, StatusResult } from './types';
+import { demoFieldsMeta, demoOrderForm, demoOrders } from './mock';
+import type { ApiErrorBody, FieldSetResult, FieldsMeta, NewOrderPayload, NewOrderResult, Order, OrderFormData, OrdersList, PaymentResult, StatusPreview, StatusResult } from './types';
 
 const API_URL = (import.meta.env.VITE_API_URL || '').trim();
 // Apps Script иногда думает 5–10 секунд (холодный старт). Дольше 30 — считаем, что связи нет.
@@ -142,4 +142,19 @@ export async function setField(o: Order, key: string, value: string, clear = fal
     return { key, title: key, old: String(o[key] ?? ''), new: clear ? '' : value, clientAdded: false, warn: '', order: { ...o, [key]: v } };
   }
   return call<FieldSetResult>('field.set', clear ? { row: o.row, id: o.id, key, clear: true } : { row: o.row, id: o.id, key, value });
+}
+
+export async function fetchOrderForm(): Promise<OrderFormData> {
+  if (demoMode) { await demoWait(400); return demoOrderForm(); }
+  return call<OrderFormData>('order.form');
+}
+
+// requestId — один на попытку: повторная отправка той же формы не создаст заказ дважды.
+export async function createOrder(payload: NewOrderPayload, requestId: string): Promise<NewOrderResult> {
+  if (demoMode) {
+    await demoWait(900);
+    const ids = payload.items.map((_, i) => 'A-DEMO-0' + (i + 1));
+    return { ids, groupId: ids[0], client: payload.city ? `${payload.client} (${payload.city})` : payload.client, clientAdded: true, tgConnected: false, duplicate: false, orders: [] };
+  }
+  return call<NewOrderResult>('order.create', { ...payload, requestId });
 }

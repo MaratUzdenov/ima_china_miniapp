@@ -86,3 +86,23 @@ export interface FieldsMeta { groups: { title: string; fields: FieldMeta[] }[] }
 export interface FieldSetResult {
   key: string; title: string; old: string; new: string; clientAdded: boolean; warn: string; order: Order;
 }
+
+// order.form: клиенты для поиска и списки для кнопок формы нового заказа.
+export interface OrderFormData {
+  clients: { name: string; city: string; tgConnected: boolean }[];
+  pickups: string[];
+  shipTypes: string[];
+  schemes: string[];
+  defaultMethod: string;
+  maxItems: number;
+}
+
+export interface NewOrderItem { item: string; qty: string; variant: string; link: string; priceCny: string }
+
+export interface NewOrderPayload {
+  client: string; city: string; pickup: string; shipType: string; scheme: string; items: NewOrderItem[];
+}
+
+export interface NewOrderResult {
+  ids: string[]; groupId: string; client: string; clientAdded: boolean; tgConnected: boolean; duplicate: boolean; orders: Order[];
+}

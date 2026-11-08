@@ -3,6 +3,7 @@ import { ApiError, demoMode, fetchOrders } from '../api';
 import { OrderGroupCard } from '../components/OrderGroupCard';
 import { EmptyState, ErrorState, SkeletonList } from '../components/States';
 import { OrderDetails } from './OrderDetails';
+import { NewOrder } from './NewOrder';
 import { norm, todayIso } from '../format';
 import type { Order, OrdersList } from '../types';
 
@@ -41,6 +42,8 @@ export function OrdersScreen() {
   const [tab, setTab] = useState<Tab>('active');
   const [query, setQuery] = useState('');
   const [openedId, setOpenedId] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const closeNew = useCallback(() => setCreating(false), []);
   const listScroll = useRef(0); // где был список, чтобы вернуться на то же место
 
   const openOrder = useCallback((o: Order) => {
@@ -81,6 +84,8 @@ export function OrdersScreen() {
 
   const today = todayIso();
 
+  if (creating) return <NewOrder onClose={closeNew} onCreated={reload} />;
+
   const opened = openedId && load.state === 'ready' ? load.data.orders.find(o => o.id === openedId) : undefined;
   if (opened && view && load.state === 'ready') {
     return <OrderDetails order={opened} chain={view.chain} statuses={load.data.statuses} onBack={closeOrder} onOrderUpdated={updateOrder} />;
@@ -89,6 +94,7 @@ export function OrdersScreen() {
   return (
     <div className="screen">
       <div className="toolbar">
+        <button className="button new-order" onClick={() => setCreating(true)}>➕ Новый заказ</button>
         <input
           className="search"
           type="search"
