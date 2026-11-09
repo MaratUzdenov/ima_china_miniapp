@@ -139,8 +139,10 @@ export interface DashboardData {
   debts: { total: number; overdueCount: number; clients: DashboardDebtor[]; cargo: { sum: number; ids: string[] } };
   delivery: {
     avgDays: number | null; minDays: number | null; maxDays: number | null; counted: number;
+    byMethod: DeliveryByMethod[];
     noDateIds: string[]; badDateIds: string[];
   };
+  charts: { timeline: Timeline; money: MoneyChart };
   warnings: DashboardWarning[];
 }
 
@@ -148,4 +150,17 @@ export interface DashboardData {
 export interface OrdersFilter {
   title: string;
   match: (o: Order) => boolean;
+}
+
+// Графики дашборда (Summary.gs → timelineData, moneyData, deliveryStats.byMethod).
+export type TimelineUnit = 'day' | 'week' | 'month';
+export interface Timeline {
+  unit: TimelineUnit;
+  buckets: { key: string; newOrders: number; earned: number }[]; // key: «2026-11-09» (день, понедельник недели) или «2026-11» (месяц)
+}
+export interface MoneySide { orders: number; expected: number; paid: number; due: number; overpaid: number }
+export interface MoneyChart { client: MoneySide; cargo: MoneySide; notCounted: number }
+export interface DeliveryByMethod {
+  method: string; avgDays: number; count: number; maxDays: number;
+  promisedMin: number | null; promisedMax: number | null; // из Справочников → «Логистика»
 }

@@ -5,7 +5,11 @@ const STATUSES = ['Принят', 'Оплачен', 'Выкуплен', 'На с
   'На таможне', 'Готов к выдаче', 'Доставлен', 'Проблема', 'Отменён'];
 
 function order(p: Partial<Order> & { id: string; row: number }): Order {
+  // «Кто платит» в таблице считается из схемы оплаты — в демо так же.
+  const scheme = p.scheme === undefined ? 'Предоплата 100%' : p.scheme;
+  const payer = !scheme ? null : /карго/i.test(scheme) ? 'Карго' : 'Клиент';
   return {
+    payer,
     date: null, createdAt: null, createdBy: 'Марат', client: null, tgId: null, shipType: 'Посылка физлицу',
     scheme: 'Предоплата 100%', item: null, link: null, variant: null, qty: null, priceCny: null, weight: null,
     method: 'Авиа', pickup: 'Черкесск', priceEst: null, priceFact: null, profit: null, expected: null, paid: null,
@@ -93,7 +97,18 @@ export function demoDashboard(period: DashboardPeriod): DashboardData {
       clients: [{ name: 'Елена (Москва)', sum: 4800, since: '2026-11-06', days: 2, overdue: false, ids: ['A-20261106-03'] }],
       cargo: { sum: 3000, ids: ['A-20261105-01'] },
     },
-    delivery: { avgDays: 4, minDays: 4, maxDays: 4, counted: 1, noDateIds: [], badDateIds: [] },
+    delivery: {
+      avgDays: 4, minDays: 4, maxDays: 4, counted: 1, noDateIds: [], badDateIds: [],
+      byMethod: [{ method: 'Авиа', avgDays: 4, count: 1, maxDays: 4, promisedMin: 4, promisedMax: 7 }],
+    },
+    charts: {
+      timeline: DEMO_TIMELINE[period],
+      money: {
+        client: { orders: 4, expected: 61300, paid: 41500, due: 19800, overpaid: 0 },
+        cargo: { orders: 1, expected: 3000, paid: 0, due: 3000, overpaid: 0 },
+        notCounted: 1,
+      },
+    },
     warnings: [
       { key: 'late', level: 'red', title: 'Прошла ожидаемая дата', kind: 'orders', ids: ['A-20261106-03'] },
       { key: 'noWeight', level: 'amber', title: 'Не указан вес', kind: 'orders', ids: ['A-20261107-02', 'A-20261105-01'] },
@@ -102,3 +117,18 @@ export function demoDashboard(period: DashboardPeriod): DashboardData {
     ],
   };
 }
+
+const DEMO_TIMELINE: Record<DashboardPeriod, DashboardData['charts']['timeline']> = {
+  '7d': { unit: 'day', buckets: [
+    { key: '2026-11-02', newOrders: 0, earned: 0 }, { key: '2026-11-03', newOrders: 0, earned: 0 },
+    { key: '2026-11-04', newOrders: 0, earned: 0 }, { key: '2026-11-05', newOrders: 1, earned: 0 },
+    { key: '2026-11-06', newOrders: 2, earned: -350 }, { key: '2026-11-07', newOrders: 2, earned: 0 },
+    { key: '2026-11-08', newOrders: 0, earned: 0 },
+  ] },
+  '30d': { unit: 'week', buckets: [
+    { key: '2026-10-05', newOrders: 0, earned: 0 }, { key: '2026-10-12', newOrders: 0, earned: 0 },
+    { key: '2026-10-19', newOrders: 0, earned: 0 }, { key: '2026-10-26', newOrders: 1, earned: 0 },
+    { key: '2026-11-02', newOrders: 5, earned: -350 },
+  ] },
+  'all': { unit: 'month', buckets: [{ key: '2026-10', newOrders: 0, earned: 0 }, { key: '2026-11', newOrders: 6, earned: -350 }] },
+};

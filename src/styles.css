@@ -294,3 +294,56 @@ button.item + button.item { margin-top: 10px; border-top: 1px solid var(--tg-the
 }
 .tip--below::after { top: auto; bottom: 100%; border-top-color: transparent; border-bottom-color: var(--tg-theme-text-color); }
 @keyframes tip-in { from { opacity: 0; transform: translateY(2px); } }
+
+/* Графики дашборда */
+.choices--compact { margin: 2px 0 8px; }
+.chart { width: 100%; margin: 0 -4px; }
+.chart-skeleton { height: 180px; border-radius: 10px; }
+.chart-empty { padding: 12px 0; }
+.chart-tip {
+  padding: 6px 10px; border-radius: 8px; font-size: 13px;
+  background: var(--tg-theme-text-color); color: var(--tg-theme-bg-color); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+.chart-tip__title { opacity: 0.75; }
+.chart-tip__value { font-weight: 700; }
+.mbar {
+  display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 8px 0; text-align: left; font: inherit;
+  background: none; border: 0; border-top: 1px solid var(--tg-theme-section-separator-color); color: var(--tg-theme-text-color); cursor: pointer;
+}
+.mbar:first-of-type { border-top: 0; }
+.mbar:disabled { cursor: default; color: var(--tg-theme-text-color); }
+.mbar__head { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
+.mbar__bar { display: flex; gap: 2px; height: 12px; border-radius: 6px; overflow: hidden; background: var(--tg-theme-secondary-bg-color); }
+.mbar__paid { background: var(--tg-theme-button-color); border-radius: 6px 0 0 6px; }
+.mbar__due { background: var(--tg-theme-hint-color); opacity: 0.55; }
+.mbar__paid:last-child, .mbar__due:last-child { border-radius: 0 6px 6px 0; }
+.mbar__paid:only-child { border-radius: 6px; }
+.mbar__legend { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; font-size: 13px; color: var(--tg-theme-hint-color); }
+.mbar__legend > span { display: inline-flex; align-items: center; }
+.mbar__dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; flex: none; }
+.mbar__dot--paid { background: var(--tg-theme-button-color); }
+.mbar__dot--due { background: var(--tg-theme-hint-color); opacity: 0.55; }
+.mbar__over { font-size: 13px; color: var(--tg-theme-link-color); }
+.methods { border-top: 1px solid var(--tg-theme-section-separator-color); margin-top: 8px; padding-top: 8px; }
+.methods__title { font-size: 13px; color: var(--tg-theme-hint-color); margin-bottom: 4px; }
+.method { padding: 6px 0; }
+.method__head { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
+.method__track { position: relative; height: 12px; margin: 6px 0 4px; border-radius: 6px; background: var(--tg-theme-secondary-bg-color); }
+.method__promise { position: absolute; top: 0; bottom: 0; border-radius: 6px; background: var(--tg-theme-hint-color); opacity: 0.35; }
+.method__fact { position: absolute; left: 0; top: 3px; height: 6px; border-radius: 0 4px 4px 0; background: var(--tg-theme-button-color); }
+.method__fact--late { background: var(--tg-theme-destructive-text-color); }
+.method__note { font-size: 13px; color: var(--tg-theme-hint-color); }
+.method__note--late { color: var(--tg-theme-destructive-text-color); }
+.methods__legend { display: flex; gap: 16px; font-size: 12px; color: var(--tg-theme-hint-color); margin-top: 4px; }
+.methods__legend > span { display: inline-flex; align-items: center; }
+.method__dot--promise { background: var(--tg-theme-hint-color); opacity: 0.35; }
+
+/* Цвета графика из темы: CSS важнее SVG-атрибутов, поэтому тема меняется на лету */
+.chart .recharts-cartesian-grid line { stroke: var(--tg-theme-section-separator-color); }
+.chart .recharts-cartesian-axis-line { stroke: var(--tg-theme-section-separator-color); }
+.chart .recharts-cartesian-axis-tick-value { fill: var(--tg-theme-hint-color); }
+.chart .chart__bar { fill: var(--tg-theme-button-color); }
+.chart .chart__bar--neg { fill: var(--tg-theme-destructive-text-color); }
+.chart .chart__cursor { fill: var(--tg-theme-secondary-bg-color); }
+.mbar__legend { gap: 4px 16px; }
+.chart :focus, .chart :focus-visible { outline: none; }
