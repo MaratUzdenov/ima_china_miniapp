@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ApiError, createOrder, demoMode, fetchOrderForm, newRequestId, timingText } from '../api';
+import { ApiError, createOrder, demoMode, fetchOrderForm, newRequestId, timingText, fetchProducts } from '../api';
 import { SkeletonList } from '../components/States';
 import { norm, plural } from '../format';
 import { notifySuccess, useTelegramBack } from '../telegram';
-import type { NewOrderItem, NewOrderResult, OrderFormData } from '../types';
+import type { NewOrderItem, NewOrderResult, OrderFormData, Product } from '../types';
 
 interface Props {
   onClose: () => void;
@@ -50,6 +50,10 @@ export function NewOrder({ onClose, onCreated }: Props) {
   const [result, setResult] = useState<NewOrderResult | null>(null);
   const [leaveWarned, setLeaveWarned] = useState(false);
   const requestId = useMemo(() => newRequestId(), []);
+  // Уже заказанные товары — подсказки при вводе названия. Не загрузились (старый бэкенд, нет связи) — просто без подсказок.
+  const [products, setProducts] = useState<Product[]>([]);
+  const [itemFocus, setItemFocus] = useState<number | null>(null);
+  useEffect(() => { fetchProducts().then(d => setProducts(d.products)).catch(() => {}); }, []);
 
   const load = () => {
     setLoadError('');
@@ -88,6 +92,23 @@ export function NewOrder({ onClose, onCreated }: Props) {
       const match = form.pickups.find(p => norm(p) === norm(cityFromName || ''));
       if (match) setPickup(match);
     }
+  };
+
+  // Похожие уже заказанные товары: часть названия, частые — выше (список уже отсортирован бэкендом).
+  const productSuggestions = (text: string) => {
+    const q = norm(text);
+    if (q.length < 2) return [];
+    return products.filter(p => p.key.includes(q) && p.key !== q).slice(0, SUGGEST_MAX);
+  };
+  // Выбрали товар из подсказки — подставляем точное название, а ссылку и цену ¥ — из последнего заказа (если поля пустые).
+  const pickProduct = (i: number, p: Product) => {
+    setItems(list => list.map((it, j) => (j !== i ? it : {
+      ...it,
+      item: p.name,
+      link: it.link || p.lastLink || '',
+      priceCny: it.priceCny || (p.lastPriceCny ? String(p.lastPriceCny).replace('.', ',') : ''),
+    })));
+    setItemFocus(null);
   };
 
   const setItem = (i: number, patch: Partial<NewOrderItem>) => setItems(list => list.map((it, j) => (j === i ? { ...it, ...patch } : it)));
@@ -192,7 +213,23 @@ export function NewOrder({ onClose, onCreated }: Props) {
                 )}
               </div>
               <input className="search" placeholder="Название, например «Кроссовки белые»" value={it.item} disabled={saving}
-                onChange={e => setItem(i, { item: e.target.value })} />
+                autoComplete="off" onFocus={() => setItemFocus(i)}
+                onChange={e => { setItem(i, { item: e.target.value }); setItemFocus(i); }} />
+              {itemFocus === i && productSuggestions(it.item).length > 0 && (
+                <div className="options">
+                  {productSuggestions(it.item).map(p => (
+                    <button key={p.key} className="option" onClick={() => pickProduct(i, p)}>
+                      {p.name} · заказывали {p.orders} {plural(p.orders, 'раз', 'раза', 'раз')}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {(() => {
+                const known = it.item.trim() ? products.find(p => p.key === norm(it.item)) : undefined;
+                return known ? (
+                  <div className="details__note">✅ Уже заказывали {known.orders} {plural(known.orders, 'раз', 'раза', 'раз')} · {known.clients} {plural(known.clients, 'клиент', 'клиента', 'клиентов')}</div>
+                ) : null;
+              })()}
               <div className="row2 field-gap">
                 <input className="search" placeholder="Кол-во" inputMode="numeric" value={it.qty} disabled={saving}
                   onChange={e => setItem(i, { qty: e.target.value })} />

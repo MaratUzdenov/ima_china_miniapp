@@ -1,6 +1,7 @@
 import { getInitData, insideTelegram } from './telegram';
-import { demoDashboard, demoFieldsMeta, demoOrderForm, demoOrders } from './mock';
-import type { ApiErrorBody, DeleteResult, GroupResult, DashboardData, DashboardPeriod, FieldSetResult, FieldsMeta, NewOrderPayload, NewOrderResult, Order, OrderFormData, OrdersList, PaymentResult, StatusPreview, StatusResult } from './types';
+import { norm } from './format';
+import { demoProducts, demoDashboard, demoFieldsMeta, demoOrderForm, demoOrders } from './mock';
+import type { ApiErrorBody, DeleteResult, GroupResult, ProductsList, RenameResult, DashboardData, DashboardPeriod, FieldSetResult, FieldsMeta, NewOrderPayload, NewOrderResult, Order, OrderFormData, OrdersList, PaymentResult, StatusPreview, StatusResult } from './types';
 
 const API_URL = (import.meta.env.VITE_API_URL || '').trim();
 // Apps Script иногда думает 5–10 секунд (холодный старт). Дольше 30 — считаем, что связи нет.
@@ -167,7 +168,7 @@ export async function fetchDashboard(period: DashboardPeriod, refresh = false): 
 
 // Отметка «в заказах что-то поменяли» — дашборд при следующем открытии попросит свежие цифры, а не из памяти.
 let dashboardStale = false;
-export function markDashboardStale(): void { dashboardStale = true; }
+export function markDashboardStale(): void { dashboardStale = true; productsPromise = null; }
 export function takeDashboardStale(): boolean {
   const v = dashboardStale;
   dashboardStale = false;
@@ -202,4 +203,36 @@ export async function splitGroup(o: Order, all: Order[]): Promise<GroupResult> {
     return { changed: others.length > 0, group: o.id, orders: out };
   }
   return call<GroupResult>('group.split', { row: o.row, id: o.id });
+}
+
+// Товары: считает бэкенд (Products.gs). Список нужен и вкладке «Товары», и подсказкам в форме нового заказа —
+// грузим один раз и держим, пока в заказах ничего не поменяли (markDashboardStale сбрасывает).
+let productsPromise: Promise<ProductsList> | null = null;
+export function fetchProducts(refresh = false): Promise<ProductsList> {
+  if (refresh || !productsPromise) {
+    productsPromise = demoMode ? demoWait(500).then(demoProducts) : call<ProductsList>('products.list', { refresh });
+    productsPromise.catch(() => { productsPromise = null; });
+  }
+  return productsPromise;
+}
+
+// Переименовать товар во всех заказах (склеить разные написания одного товара).
+export async function renameProduct(from: string, to: string): Promise<RenameResult> {
+  if (demoMode) {
+    await demoWait(700);
+    const orders = demoOrders().orders.filter(o => norm(o.item) === norm(from)).map(o => ({ ...o, item: to }));
+    return { matched: orders.length, merged: false, name: to, orders };
+  }
+  return call<RenameResult>('product.rename', { from, to });
+}
+
+// Изменённые заказы с других экранов (переименование товара) — список «Заказы» подхватывает их без перезагрузки.
+type OrdersListener = (orders: Order[]) => void;
+const ordersListeners = new Set<OrdersListener>();
+export function onOrdersChanged(cb: OrdersListener): () => void {
+  ordersListeners.add(cb);
+  return () => { ordersListeners.delete(cb); };
+}
+export function emitOrdersChanged(orders: Order[]): void {
+  ordersListeners.forEach(cb => cb(orders));
 }

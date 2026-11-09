@@ -1,7 +1,8 @@
-export type Section = 'orders' | 'dashboard';
+export type Section = 'orders' | 'products' | 'dashboard';
 
 const SECTIONS: { key: Section; icon: string; title: string }[] = [
   { key: 'orders', icon: '📋', title: 'Заказы' },
+  { key: 'products', icon: '🛍', title: 'Товары' },
   { key: 'dashboard', icon: '📊', title: 'Дашборд' },
 ];
 

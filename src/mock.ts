@@ -1,4 +1,4 @@
-import type { Timeline, DashboardData, DashboardPeriod, FieldMeta, FieldsMeta, Order, OrderFormData, OrdersList } from './types';
+import type { Product, ProductsList, Timeline, DashboardData, DashboardPeriod, FieldMeta, FieldsMeta, Order, OrderFormData, OrdersList } from './types';
 
 // Демо-данные в том же формате, что отдаёт Api.gs. Нужны, пока API не подключён, и для проверки в браузере.
 const STATUSES = ['Принят', 'Оплачен', 'Выкуплен', 'На складе в Китае', 'В пути',
@@ -135,3 +135,28 @@ const DEMO_TIMELINE: Record<DashboardPeriod, Timeline> = {
   ] },
   'all': { unit: 'month', buckets: [{ key: '2026-10', newOrders: 0, earned: 0 }, { key: '2026-11', newOrders: 6, earned: -350 }] },
 };
+
+// Демо-товары — из демо-заказов, по тем же правилам, что Products.gs.
+export function demoProducts(): ProductsList {
+  const map = new Map<string, Product>();
+  demoOrders().orders.forEach(o => {
+    if (!o.item) return;
+    const key = o.item.toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ').trim();
+    const p = map.get(key) || { key, name: o.item, orders: 0, qty: 0, clients: 0, inWork: 0, delivered: 0, cancelled: 0,
+      earned: 0, expected: 0, noProfit: 0, lastDate: o.date, lastLink: o.link || '', lastPriceCny: typeof o.priceCny === 'number' ? o.priceCny : null };
+    if (o.status === 'Отменён') p.cancelled++;
+    else {
+      p.orders++; p.clients++;
+      if (typeof o.qty === 'number') p.qty += o.qty;
+      const done = o.status === 'Доставлен';
+      if (done) p.delivered++; else p.inWork++;
+      if (typeof o.profit !== 'number') p.noProfit++; else if (done) p.earned += o.profit; else p.expected += o.profit;
+    }
+    map.set(key, p);
+  });
+  // Пара «популярных» товаров, чтобы было видно, как выглядит топ.
+  map.set('генератор 3квт', { key: 'генератор 3квт', name: 'Генератор 3кВт', orders: 3, qty: 3, clients: 3, inWork: 2, delivered: 1,
+    cancelled: 0, earned: 4200, expected: 7800, noProfit: 0, lastDate: '2026-11-07', lastLink: 'https://detail.1688.com/offer/7.html', lastPriceCny: 1350 });
+  const products = [...map.values()].sort((a, b) => (b.orders - a.orders) || (b.qty - a.qty) || a.name.localeCompare(b.name, 'ru'));
+  return { updatedAt: '2026-11-09T10:00', cached: false, products };
+}

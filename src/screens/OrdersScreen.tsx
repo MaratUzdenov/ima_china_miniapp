@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ApiError, demoMode, fetchOrders, markDashboardStale } from '../api';
+import { ApiError, demoMode, fetchOrders, markDashboardStale, onOrdersChanged } from '../api';
 import { OrderGroupCard } from '../components/OrderGroupCard';
 import { EmptyState, ErrorState, SkeletonList } from '../components/States';
 import { OrderDetails } from './OrderDetails';
@@ -41,10 +41,11 @@ interface Props {
   nav?: ReactNode;                    // нижняя панель «Заказы / Дашборд»
   filter?: OrdersFilter | null;       // пришли с дашборда: показать только эти заказы
   onClearFilter?: () => void;
-  onBackToDashboard?: () => void;
+  onBack?: () => void;                // вернуться туда, откуда пришли с фильтром
+  backLabel?: string;
 }
 
-export function OrdersScreen({ nav, filter = null, onClearFilter, onBackToDashboard }: Props) {
+export function OrdersScreen({ nav, filter = null, onClearFilter, onBack, backLabel = '‹ Назад' }: Props) {
   const [load, setLoad] = useState<Load>({ state: 'loading' });
   const [tab, setTab] = useState<Tab>('active');
   const [query, setQuery] = useState('');
@@ -82,6 +83,8 @@ export function OrdersScreen({ nav, filter = null, onClearFilter, onBackToDashbo
     setOpenedId(null);
     setListNotice('🗑 Заказ ' + r.id + ' удалён. Копия — на листе «Удалённые».');
   }, []);
+  // Заказы, изменённые на других вкладках (переименовали товар), — подменяем в списке.
+  useEffect(() => onOrdersChanged(list => list.forEach(updateOrder)), [updateOrder]);
   useEffect(() => {
     if (openedId === null) requestAnimationFrame(() => window.scrollTo(0, listScroll.current));
   }, [openedId]);
@@ -133,7 +136,7 @@ export function OrdersScreen({ nav, filter = null, onClearFilter, onBackToDashbo
         />
         {filter ? (
           <div className="filter-bar">
-            <button className="link" onClick={onBackToDashboard}>‹ Дашборд</button>
+            <button className="link" onClick={onBack}>{backLabel}</button>
             <span className="filter-bar__title">{filter.title}{view ? ' · ' + view.groups.reduce((n, g) => n + g.length, 0) : ''}</span>
             <button className="link" onClick={onClearFilter} aria-label="Сбросить фильтр">✕ Все</button>
           </div>

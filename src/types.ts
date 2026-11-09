@@ -171,3 +171,15 @@ export interface DeleteResult { id: string; row: number; client: string; item: s
 
 // group.merge / group.split (Grouping.gs). orders — все строки, у которых поменялась «Группа».
 export interface GroupResult { changed: boolean; group: string; orders: Order[] }
+
+// products.list / product.rename (Products.gs). Товар = название без учёта регистра и ё/е.
+export interface Product {
+  key: string; name: string;
+  orders: number; qty: number; clients: number; inWork: number; delivered: number; cancelled: number;
+  earned: number;    // прибыль выданных заказов
+  expected: number;  // прибыль заказов в работе
+  noProfit: number;  // заказов, где прибыль ещё не посчитана
+  lastDate: string | null; lastLink: string; lastPriceCny: number | null;
+}
+export interface ProductsList { updatedAt: string; cached: boolean; products: Product[] }
+export interface RenameResult { matched: number; merged: boolean; name: string; orders: Order[] }
