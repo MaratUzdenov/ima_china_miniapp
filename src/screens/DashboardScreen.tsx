@@ -4,7 +4,7 @@ import { ErrorState } from '../components/States';
 import { HelpTip } from '../components/HelpTip';
 import { isNum, norm, plural, rub, shortDate, shortDateTime } from '../format';
 import { readPref, savePref } from '../prefs';
-import type { DashboardData, DashboardDebtor, DashboardPeriod, DashboardWarning, DeliveryByMethod, MoneySide, Order, OrdersFilter } from '../types';
+import type { DashboardCharts, DashboardData, DashboardDebtor, DashboardPeriod, DashboardWarning, DeliveryByMethod, MoneySide, Order, OrdersFilter } from '../types';
 import type { TimelineMeasure } from '../components/TimelineChart';
 
 // Библиотека графиков — отдельным файлом: грузится, только когда дашборд открыт.
@@ -291,8 +291,15 @@ function PeriodBlock({ data, period, onPeriod, onOpen }: {
         </button>
       </div>
 
-      <DynamicsCard data={data} />
-      <MoneyCard data={data} since={since} onOpen={onOpen} />
+      {data.charts ? (
+        <>
+          <DynamicsCard charts={data.charts} />
+          <MoneyCard data={data} charts={data.charts} since={since} onOpen={onOpen} />
+        </>
+      ) : (
+        // Сайт обновился раньше, чем Apps Script: старый бэкенд графиков не присылает — не падаем, подсказываем.
+        <div className="notice">Графики появятся после обновления файла Summary в Apps Script («Новая версия» развёртывания).</div>
+      )}
 
       <Card title="🚚 Средний срок доставки"
         help="От «Даты» заказа до «Факт. даты выдачи» — по доставленным заказам, выданным за выбранный период. Без даты выдачи заказ в расчёт не попадает.">
@@ -310,7 +317,7 @@ function PeriodBlock({ data, period, onPeriod, onOpen }: {
             </div>
           </>
         )}
-        {delivery.byMethod.length > 0 && <MethodBars methods={delivery.byMethod} />}
+        {delivery.byMethod && delivery.byMethod.length > 0 && <MethodBars methods={delivery.byMethod} />}
         {delivery.noDateIds.length > 0 && (
           <Row tone="hint" left={`Доставлено без «Факт. даты выдачи»: ${delivery.noDateIds.length}`} right=""
             onClick={() => onOpen(byIds('Нет даты выдачи', delivery.noDateIds))} />
@@ -329,10 +336,10 @@ const fmtDays = (d: number) => String(d).replace('.', ',');
 // ── График 1: динамика — новые заказы или заработано по дням / неделям / месяцам ──
 const UNIT_TEXT = { day: 'по дням', week: 'по неделям', month: 'по месяцам' } as const;
 
-function DynamicsCard({ data }: { data: DashboardData }) {
+function DynamicsCard({ charts }: { charts: DashboardCharts }) {
   const [measure, setMeasure] = useState<TimelineMeasure>(() => readPref('dashMeasure', ['orders', 'earned'] as const, 'orders'));
   const pick = (m: TimelineMeasure) => { setMeasure(m); savePref('dashMeasure', m); };
-  const { timeline } = data.charts;
+  const { timeline } = charts;
   const empty = timeline.buckets.every(b => (measure === 'orders' ? b.newOrders : b.earned) === 0);
   return (
     <Card title={'📈 Динамика ' + UNIT_TEXT[timeline.unit]}
@@ -357,8 +364,8 @@ function DynamicsCard({ data }: { data: DashboardData }) {
 }
 
 // ── График 2: деньги по заказам за период — получено и осталось (клиенты и карго отдельно) ──
-function MoneyCard({ data, since, onOpen }: { data: DashboardData; since: string; onOpen: (f: OrdersFilter) => void }) {
-  const { money } = data.charts;
+function MoneyCard({ data, charts, since, onOpen }: { data: DashboardData; charts: DashboardCharts; since: string; onOpen: (f: OrdersFilter) => void }) {
+  const { money } = charts;
   const from = data.period.from;
   const owed = (payer: string): OrdersFilter => ({
     title: 'Не оплачено ' + since + (payer === 'Карго' ? ' (карго)' : ''),

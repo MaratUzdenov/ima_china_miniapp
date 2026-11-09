@@ -1,4 +1,4 @@
-import type { DashboardData, DashboardPeriod, FieldMeta, FieldsMeta, Order, OrderFormData, OrdersList } from './types';
+import type { Timeline, DashboardData, DashboardPeriod, FieldMeta, FieldsMeta, Order, OrderFormData, OrdersList } from './types';
 
 // Демо-данные в том же формате, что отдаёт Api.gs. Нужны, пока API не подключён, и для проверки в браузере.
 const STATUSES = ['Принят', 'Оплачен', 'Выкуплен', 'На складе в Китае', 'В пути',
@@ -118,7 +118,7 @@ export function demoDashboard(period: DashboardPeriod): DashboardData {
   };
 }
 
-const DEMO_TIMELINE: Record<DashboardPeriod, DashboardData['charts']['timeline']> = {
+const DEMO_TIMELINE: Record<DashboardPeriod, Timeline> = {
   '7d': { unit: 'day', buckets: [
     { key: '2026-11-02', newOrders: 0, earned: 0 }, { key: '2026-11-03', newOrders: 0, earned: 0 },
     { key: '2026-11-04', newOrders: 0, earned: 0 }, { key: '2026-11-05', newOrders: 1, earned: 0 },

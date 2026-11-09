@@ -139,10 +139,10 @@ export interface DashboardData {
   debts: { total: number; overdueCount: number; clients: DashboardDebtor[]; cargo: { sum: number; ids: string[] } };
   delivery: {
     avgDays: number | null; minDays: number | null; maxDays: number | null; counted: number;
-    byMethod: DeliveryByMethod[];
+    byMethod?: DeliveryByMethod[];   // нет у бэкенда до версии с графиками
     noDateIds: string[]; badDateIds: string[];
   };
-  charts: { timeline: Timeline; money: MoneyChart };
+  charts?: DashboardCharts; // нет у бэкенда до версии с графиками
   warnings: DashboardWarning[];
 }
 
@@ -164,3 +164,4 @@ export interface DeliveryByMethod {
   method: string; avgDays: number; count: number; maxDays: number;
   promisedMin: number | null; promisedMax: number | null; // из Справочников → «Логистика»
 }
+export interface DashboardCharts { timeline: Timeline; money: MoneyChart }
