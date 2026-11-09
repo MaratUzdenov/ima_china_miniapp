@@ -347,3 +347,11 @@ button.item + button.item { margin-top: 10px; border-top: 1px solid var(--tg-the
 .chart .chart__cursor { fill: var(--tg-theme-secondary-bg-color); }
 .mbar__legend { gap: 4px 16px; }
 .chart :focus, .chart :focus-visible { outline: none; }
+
+/* Удаление заказа */
+.button--danger { background: var(--tg-theme-destructive-text-color); color: #fff; }
+.button--danger-text { color: var(--tg-theme-destructive-text-color); }
+.delete-order { display: block; width: 100%; margin-top: var(--gap); }
+.delete__list { margin: 10px 0; padding-left: 18px; font-size: 14px; line-height: 1.45; }
+.delete__list li { margin: 4px 0; }
+.list-notice { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: var(--gap); }

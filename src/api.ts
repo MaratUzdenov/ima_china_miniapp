@@ -1,6 +1,6 @@
 import { getInitData, insideTelegram } from './telegram';
 import { demoDashboard, demoFieldsMeta, demoOrderForm, demoOrders } from './mock';
-import type { ApiErrorBody, DashboardData, DashboardPeriod, FieldSetResult, FieldsMeta, NewOrderPayload, NewOrderResult, Order, OrderFormData, OrdersList, PaymentResult, StatusPreview, StatusResult } from './types';
+import type { ApiErrorBody, DeleteResult, DashboardData, DashboardPeriod, FieldSetResult, FieldsMeta, NewOrderPayload, NewOrderResult, Order, OrderFormData, OrdersList, PaymentResult, StatusPreview, StatusResult } from './types';
 
 const API_URL = (import.meta.env.VITE_API_URL || '').trim();
 // Apps Script иногда думает 5–10 секунд (холодный старт). Дольше 30 — считаем, что связи нет.
@@ -172,4 +172,11 @@ export function takeDashboardStale(): boolean {
   const v = dashboardStale;
   dashboardStale = false;
   return v;
+}
+
+// Удаление заказа. requestId — один на попытку: повторная отправка не удалит соседнюю строку
+// и не выдаст «не найден» — бэкенд вернёт прошлый результат.
+export async function deleteOrder(o: Order, requestId: string): Promise<DeleteResult> {
+  if (demoMode) { await demoWait(800); return { id: o.id, row: o.row, client: o.client || '', item: o.item || '', duplicate: false }; }
+  return call<DeleteResult>('order.delete', { row: o.row, id: o.id, requestId });
 }

@@ -165,3 +165,6 @@ export interface DeliveryByMethod {
   promisedMin: number | null; promisedMax: number | null; // из Справочников → «Логистика»
 }
 export interface DashboardCharts { timeline: Timeline; money: MoneyChart }
+
+// order.delete (OrderDelete.gs). duplicate — повтор того же запроса: второй раз не удаляли.
+export interface DeleteResult { id: string; row: number; client: string; item: string; duplicate: boolean }

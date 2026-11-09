@@ -5,7 +5,8 @@ import { DETAIL_GROUPS } from '../fields';
 import { formatField, isNum, orderWarnings, rub, todayIso } from '../format';
 import { insideTelegram, openExternal, useTelegramBack } from '../telegram';
 import { timingText } from '../api';
-import type { Order, PaymentResult, StatusResult } from '../types';
+import type { DeleteResult, Order, PaymentResult, StatusResult } from '../types';
+import { DeleteOrder } from './DeleteOrder';
 import { Payment } from './Payment';
 import { EditOrder } from './EditOrder';
 import { StatusChange } from './StatusChange';
@@ -16,6 +17,8 @@ interface Props {
   statuses: string[];
   onBack: () => void;
   onOrderUpdated: (o: Order) => void;
+  onOrderDeleted: (r: DeleteResult) => void;
+  groupSize: number;
 }
 
 // Итог оплаты — как в боте (Edit.gs → applyPaymentText).
@@ -47,8 +50,8 @@ function resultText(r: StatusResult): string {
 
 // Карточка заказа: все поля по группам, как в боте. Пока только просмотр —
 // смена статуса и оплата появятся, когда API научится писать в таблицу.
-export function OrderDetails({ order: o, chain, statuses, onBack, onOrderUpdated }: Props) {
-  const [mode, setMode] = useState<'view' | 'status' | 'payment' | 'edit'>('view');
+export function OrderDetails({ order: o, chain, statuses, onBack, onOrderUpdated, onOrderDeleted, groupSize }: Props) {
+  const [mode, setMode] = useState<'view' | 'status' | 'payment' | 'edit' | 'delete'>('view');
   const changingStatus = mode !== 'view';
   const setChangingStatus = (on: boolean) => setMode(on ? 'status' : 'view');
   const [notice, setNotice] = useState('');
@@ -72,6 +75,9 @@ export function OrderDetails({ order: o, chain, statuses, onBack, onOrderUpdated
   }
   if (mode === 'payment') {
     return <Payment order={o} onDone={paymentDone} onCancel={closeStatus} />;
+  }
+  if (mode === 'delete') {
+    return <DeleteOrder order={o} groupSize={groupSize} onDone={onOrderDeleted} onCancel={closeStatus} />;
   }
   if (mode === 'edit') {
     return <EditOrder order={o} onOrderUpdated={onOrderUpdated} onClose={closeStatus} />;
@@ -118,6 +124,10 @@ export function OrderDetails({ order: o, chain, statuses, onBack, onOrderUpdated
         </section>
       ))}
 
+      {/* Удаление — внизу, отдельно от частых кнопок, чтобы не нажать случайно */}
+      <button className="button button--ghost button--danger-text delete-order" onClick={() => { setNotice(''); setMode('delete'); }}>
+        🗑 Удалить заказ
+      </button>
     </div>
   );
 }

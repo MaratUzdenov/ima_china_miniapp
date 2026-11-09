@@ -5,7 +5,7 @@ import { EmptyState, ErrorState, SkeletonList } from '../components/States';
 import { OrderDetails } from './OrderDetails';
 import { NewOrder } from './NewOrder';
 import { norm, todayIso } from '../format';
-import type { Order, OrdersFilter, OrdersList } from '../types';
+import type { DeleteResult, Order, OrdersFilter, OrdersList } from '../types';
 
 type Tab = 'active' | 'delivered' | 'all';
 const TABS: { key: Tab; title: string }[] = [
@@ -66,6 +66,22 @@ export function OrdersScreen({ nav, filter = null, onClearFilter, onBackToDashbo
       data: { ...prev.data, orders: prev.data.orders.map(o => (o.id === fresh.id ? fresh : o)) },
     });
   }, []);
+  // Удалили заказ: убираем из списка, а строки ниже сдвигаем на одну вверх — так же, как в таблице.
+  // Перезагружать весь список не нужно.
+  const [listNotice, setListNotice] = useState('');
+  const removeOrder = useCallback((r: DeleteResult) => {
+    markDashboardStale();
+    setLoad(prev => {
+      if (prev.state !== 'ready') return prev;
+      const gone = prev.data.orders.find(o => o.id === r.id);
+      const removedRow = gone ? gone.row : r.row;
+      return { state: 'ready', data: { ...prev.data, orders: prev.data.orders
+        .filter(o => o.id !== r.id)
+        .map(o => (r.duplicate || o.row <= removedRow ? o : { ...o, row: o.row - 1 })) } };
+    });
+    setOpenedId(null);
+    setListNotice('🗑 Заказ ' + r.id + ' удалён. Копия — на листе «Удалённые».');
+  }, []);
   useEffect(() => {
     if (openedId === null) requestAnimationFrame(() => window.scrollTo(0, listScroll.current));
   }, [openedId]);
@@ -97,7 +113,9 @@ export function OrdersScreen({ nav, filter = null, onClearFilter, onBackToDashbo
 
   const opened = openedId && load.state === 'ready' ? load.data.orders.find(o => o.id === openedId) : undefined;
   if (opened && view && load.state === 'ready') {
-    return <OrderDetails order={opened} chain={view.chain} statuses={load.data.statuses} onBack={closeOrder} onOrderUpdated={updateOrder} />;
+    const groupSize = load.data.orders.filter(o => o.groupId === opened.groupId).length;
+    return <OrderDetails order={opened} chain={view.chain} statuses={load.data.statuses} onBack={closeOrder}
+      onOrderUpdated={updateOrder} onOrderDeleted={removeOrder} groupSize={groupSize} />;
   }
 
   return (
@@ -151,6 +169,9 @@ export function OrdersScreen({ nav, filter = null, onClearFilter, onBackToDashbo
           hint={query ? 'Попробуйте часть слова, например «гвозд», или вкладку «Все».'
             : filter ? 'Похоже, эти заказы уже поправили. Нажмите «✕ Все» или обновите дашборд.' : 'Загляните во вкладку «Все».'}
         />
+      )}
+      {listNotice && (
+        <div className="notice list-notice">{listNotice} <button className="link" onClick={() => setListNotice('')} aria-label="Скрыть">✕</button></div>
       )}
       {view && view.groups.length > 0 && (
         <div className="list">
