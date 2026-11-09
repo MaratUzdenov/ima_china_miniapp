@@ -21,6 +21,9 @@ function order(p: Partial<Order> & { id: string; row: number }): Order {
 
 export function demoOrders(): OrdersList {
   const orders: Order[] = [
+    order({ row: 8, id: 'A-20261108-01', date: '2026-11-08', createdAt: '2026-11-08T09:40:00', client: 'Елена (Москва)',
+      tgConnected: true, tgId: '100200300', item: 'Шурупы 30 мм', qty: 500, status: 'Принят', pickup: 'Москва', weight: 4,
+      priceEst: 2600, expected: 2600, due: 2600 }),
     order({ row: 7, id: 'A-20261107-02', date: '2026-11-07', createdAt: '2026-11-07T10:20:00', client: 'Ахмат (Теберда)',
       item: 'Шлем для квадроцикла', qty: 1, status: 'Принят', weight: null, priceEst: 'Укажите вес', due: 'Выберите схему оплаты',
       scheme: null, groupId: 'A-20261107-01', comment: 'Внесено через бота · вместе с заказом A-20261107-01' }),

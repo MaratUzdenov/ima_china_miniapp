@@ -2,11 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { StatusProgress } from '../components/StatusProgress';
 import { HelpTip } from '../components/HelpTip';
 import { DETAIL_GROUPS } from '../fields';
-import { formatField, isNum, orderWarnings, rub, todayIso } from '../format';
+import { formatField, isNum, orderWarnings, plural, rub, todayIso } from '../format';
 import { insideTelegram, openExternal, useTelegramBack } from '../telegram';
 import { timingText } from '../api';
-import type { DeleteResult, Order, PaymentResult, StatusResult } from '../types';
+import type { DeleteResult, GroupResult, Order, PaymentResult, StatusResult } from '../types';
 import { DeleteOrder } from './DeleteOrder';
+import { GroupOrder } from './GroupOrder';
 import { Payment } from './Payment';
 import { EditOrder } from './EditOrder';
 import { StatusChange } from './StatusChange';
@@ -19,6 +20,7 @@ interface Props {
   onOrderUpdated: (o: Order) => void;
   onOrderDeleted: (r: DeleteResult) => void;
   groupSize: number;
+  allOrders: Order[];
 }
 
 // Итог оплаты — как в боте (Edit.gs → applyPaymentText).
@@ -50,8 +52,8 @@ function resultText(r: StatusResult): string {
 
 // Карточка заказа: все поля по группам, как в боте. Пока только просмотр —
 // смена статуса и оплата появятся, когда API научится писать в таблицу.
-export function OrderDetails({ order: o, chain, statuses, onBack, onOrderUpdated, onOrderDeleted, groupSize }: Props) {
-  const [mode, setMode] = useState<'view' | 'status' | 'payment' | 'edit' | 'delete'>('view');
+export function OrderDetails({ order: o, chain, statuses, onBack, onOrderUpdated, onOrderDeleted, groupSize, allOrders }: Props) {
+  const [mode, setMode] = useState<'view' | 'status' | 'payment' | 'edit' | 'delete' | 'group'>('view');
   const changingStatus = mode !== 'view';
   const setChangingStatus = (on: boolean) => setMode(on ? 'status' : 'view');
   const [notice, setNotice] = useState('');
@@ -75,6 +77,14 @@ export function OrderDetails({ order: o, chain, statuses, onBack, onOrderUpdated
   }
   if (mode === 'payment') {
     return <Payment order={o} onDone={paymentDone} onCancel={closeStatus} />;
+  }
+  if (mode === 'group') {
+    const groupDone = (r: GroupResult, text: string) => {
+      r.orders.forEach(onOrderUpdated);
+      setNotice(text + timingText());
+      setMode('view');
+    };
+    return <GroupOrder order={o} all={allOrders} onDone={groupDone} onCancel={closeStatus} />;
   }
   if (mode === 'delete') {
     return <DeleteOrder order={o} groupSize={groupSize} onDone={onOrderDeleted} onCancel={closeStatus} />;
@@ -108,6 +118,9 @@ export function OrderDetails({ order: o, chain, statuses, onBack, onOrderUpdated
           <button className="button" onClick={() => { setNotice(''); setChangingStatus(true); }}>🔄 Сменить статус</button>
           <button className="button button--secondary" onClick={() => { setNotice(''); setMode('payment'); }}>💰 Внести оплату</button>
           <button className="button button--secondary" onClick={() => { setNotice(''); setMode('edit'); }}>✏️ Редактировать</button>
+          <button className="button button--secondary" onClick={() => { setNotice(''); setMode('group'); }}>
+            🧺 {groupSize > 1 ? 'Группа · ' + groupSize + ' ' + plural(groupSize, 'товар', 'товара', 'товаров') : 'Объединить с заказом'}
+          </button>
         </div>
         {notice && <div className="notice">{notice}</div>}
         {!o.tgConnected && (

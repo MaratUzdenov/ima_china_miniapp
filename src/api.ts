@@ -1,6 +1,6 @@
 import { getInitData, insideTelegram } from './telegram';
 import { demoDashboard, demoFieldsMeta, demoOrderForm, demoOrders } from './mock';
-import type { ApiErrorBody, DeleteResult, DashboardData, DashboardPeriod, FieldSetResult, FieldsMeta, NewOrderPayload, NewOrderResult, Order, OrderFormData, OrdersList, PaymentResult, StatusPreview, StatusResult } from './types';
+import type { ApiErrorBody, DeleteResult, GroupResult, DashboardData, DashboardPeriod, FieldSetResult, FieldsMeta, NewOrderPayload, NewOrderResult, Order, OrderFormData, OrdersList, PaymentResult, StatusPreview, StatusResult } from './types';
 
 const API_URL = (import.meta.env.VITE_API_URL || '').trim();
 // Apps Script иногда думает 5–10 секунд (холодный старт). Дольше 30 — считаем, что связи нет.
@@ -179,4 +179,27 @@ export function takeDashboardStale(): boolean {
 export async function deleteOrder(o: Order, requestId: string): Promise<DeleteResult> {
   if (demoMode) { await demoWait(800); return { id: o.id, row: o.row, client: o.client || '', item: o.item || '', duplicate: false }; }
   return call<DeleteResult>('order.delete', { row: o.row, id: o.id, requestId });
+}
+
+// Объединить заказ (вместе с его соседями по группе) с группой другого заказа того же клиента.
+// Повтор безопасен: если уже вместе — changed = false.
+export async function mergeGroup(o: Order, target: Order, all: Order[]): Promise<GroupResult> {
+  if (demoMode) {
+    await demoWait(700);
+    const moved = all.filter(x => x.groupId === o.groupId).map(x => ({ ...x, group: target.groupId, groupId: target.groupId }));
+    return { changed: true, group: target.groupId, orders: moved };
+  }
+  return call<GroupResult>('group.merge', { row: o.row, id: o.id, targetId: target.id });
+}
+
+// Отделить один товар от группы — он станет отдельным заказом.
+export async function splitGroup(o: Order, all: Order[]): Promise<GroupResult> {
+  if (demoMode) {
+    await demoWait(700);
+    const others = all.filter(x => x.groupId === o.groupId && x.id !== o.id);
+    const head = o.groupId === o.id && others[0] ? others[0].id : null;
+    const out = [{ ...o, group: o.id, groupId: o.id }].concat(head ? others.map(x => ({ ...x, group: head, groupId: head })) : []);
+    return { changed: others.length > 0, group: o.id, orders: out };
+  }
+  return call<GroupResult>('group.split', { row: o.row, id: o.id });
 }

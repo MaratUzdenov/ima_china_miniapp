@@ -168,3 +168,6 @@ export interface DashboardCharts { timeline: Timeline; money: MoneyChart }
 
 // order.delete (OrderDelete.gs). duplicate — повтор того же запроса: второй раз не удаляли.
 export interface DeleteResult { id: string; row: number; client: string; item: string; duplicate: boolean }
+
+// group.merge / group.split (Grouping.gs). orders — все строки, у которых поменялась «Группа».
+export interface GroupResult { changed: boolean; group: string; orders: Order[] }

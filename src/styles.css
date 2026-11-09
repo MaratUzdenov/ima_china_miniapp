@@ -355,3 +355,14 @@ button.item + button.item { margin-top: 10px; border-top: 1px solid var(--tg-the
 .delete__list { margin: 10px 0; padding-left: 18px; font-size: 14px; line-height: 1.45; }
 .delete__list li { margin: 4px 0; }
 .list-notice { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: var(--gap); }
+
+/* Группа заказа — выбор, с чем объединить */
+.group-pick {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%;
+  min-height: var(--tap); padding: 10px 0; text-align: left; font: inherit; cursor: pointer;
+  background: none; border: 0; border-top: 1px solid var(--tg-theme-section-separator-color); color: var(--tg-theme-text-color);
+}
+.group-pick:disabled { opacity: 0.6; cursor: default; }
+.group-pick__main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.group-pick__items { font-size: 13px; color: var(--tg-theme-hint-color); overflow-wrap: anywhere; }
+.group-pick__go { white-space: nowrap; color: var(--tg-theme-link-color); font-size: 14px; }

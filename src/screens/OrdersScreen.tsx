@@ -115,7 +115,7 @@ export function OrdersScreen({ nav, filter = null, onClearFilter, onBackToDashbo
   if (opened && view && load.state === 'ready') {
     const groupSize = load.data.orders.filter(o => o.groupId === opened.groupId).length;
     return <OrderDetails order={opened} chain={view.chain} statuses={load.data.statuses} onBack={closeOrder}
-      onOrderUpdated={updateOrder} onOrderDeleted={removeOrder} groupSize={groupSize} />;
+      onOrderUpdated={updateOrder} onOrderDeleted={removeOrder} groupSize={groupSize} allOrders={load.data.orders} />;
   }
 
   return (
